@@ -32,7 +32,8 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SEOHead } from "@/components/seo/SEOHead";
-import heroUser from "@/assets/hero-user.png";
+import heroConsultant from "@/assets/hero-consultant.png";
+import { motion } from "framer-motion";
 
 const Index = () => {
   return (
@@ -54,74 +55,79 @@ const Index = () => {
       />
       <Navbar />
 
-      {/* Hero Section - Style ViserGrow avec fond blanc */}
-      <section className="relative min-h-[90vh] bg-background overflow-hidden">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/20 to-background" />
-        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
+      {/* Hero Section - Design moderne et inspirant */}
+      <section className="relative min-h-screen bg-gradient-to-br from-primary via-primary to-primary/95 overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-secondary/10 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-3xl -translate-x-1/2 translate-y-1/4" />
+          <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-accent/5 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
+        </div>
         
-        <div className="container mx-auto px-4 relative h-full">
-          <div className="grid lg:grid-cols-2 gap-8 items-center min-h-[90vh] pt-24 pb-12">
-            
-            {/* Left side - Image */}
-            <div className="relative order-2 lg:order-1 flex justify-center lg:justify-start">
-              <div className="relative">
-                {/* Gradient bar accent - Wouaka colors */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-64 bg-gradient-to-b from-primary via-secondary to-accent rounded-full hidden lg:block shadow-lg" />
-                
-                {/* Hero image */}
-                <img 
-                  src={heroUser} 
-                  alt="Entrepreneur africain utilisant Wouaka" 
-                  className="relative z-10 max-h-[500px] lg:max-h-[600px] w-auto object-contain drop-shadow-xl lg:ml-8"
-                />
-                
-                {/* Floating stats card */}
-                <div className="absolute -bottom-4 -right-4 lg:bottom-8 lg:right-0 bg-primary/95 backdrop-blur-lg border border-primary-foreground/10 rounded-2xl p-4 shadow-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-secondary-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-primary-foreground/70 text-xs">Taux d'inclusion</p>
-                      <p className="text-primary-foreground font-bold text-xl">+85%</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }} />
 
+        <div className="container mx-auto px-4 relative z-10 h-screen">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-end min-h-screen pt-24 pb-0">
+            
             {/* Right side - Content */}
-            <div className="order-1 lg:order-2 text-center lg:text-left">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-full px-4 py-2 mb-6">
-                <span className="text-primary text-sm font-medium">
-                  Wouaka score 100% de l'Afrique. Pas seulement les 15% bancarisés.
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="text-center lg:text-left order-2 lg:order-2"
+            >
+              {/* Tagline badge */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-5 py-2.5 mb-8"
+              >
+                <div className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
+                <span className="text-white/90 text-sm font-medium tracking-wide">
+                  Scoring de crédit nouvelle génération
                 </span>
-                <ArrowRight className="w-4 h-4 text-secondary" />
-              </div>
+              </motion.div>
 
               {/* Main title */}
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-primary mb-6 leading-tight tracking-tight">
-                SCOREZ L'INVISIBLE.
-                <span className="block text-secondary">
-                  85% DE L'AFRIQUE
-                </span>
-                <span className="block text-primary/80">VOUS ATTEND.</span>
-              </h1>
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-[1.1] tracking-tight"
+              >
+                Scorez <span className="text-secondary">l'invisible</span>.
+                <br />
+                <span className="text-white/80">85% de l'Afrique</span>
+                <br />
+                vous attend.
+              </motion.h1>
 
               {/* Description */}
-              <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                Wouaka score <strong className="text-foreground">tout le monde</strong>. Même sans compte bancaire. Grâce
-                aux données alternatives (Mobile Money, télécom, comportement digital), nous rendons visible l'invisible.
-              </p>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-white/70 text-lg md:text-xl mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+              >
+                Grâce aux données alternatives — Mobile Money, télécom, comportement digital — 
+                nous rendons <strong className="text-white">visible l'invisible</strong>. 
+                Scorez 100% de la population, pas seulement les 15% bancarisés.
+              </motion.p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12"
+              >
                 <Button 
                   size="lg" 
-                  className="gap-2 text-lg px-8 font-semibold rounded-full shadow-lg" 
+                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-2 text-lg px-8 py-6 font-semibold rounded-full shadow-2xl shadow-secondary/30 hover:shadow-secondary/40 transition-all hover:scale-105" 
                   asChild
                 >
                   <Link to="/developers">
@@ -130,50 +136,121 @@ const Index = () => {
                   </Link>
                 </Button>
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   size="lg" 
-                  className="border-primary/30 text-primary hover:bg-primary/5 gap-2 rounded-full" 
+                  className="border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 gap-2 rounded-full px-8 py-6 transition-all" 
                   asChild
                 >
                   <Link to="/contact">
+                    <Play className="w-5 h-5" />
                     Voir la démo
-                    <Play className="w-4 h-4" />
                   </Link>
                 </Button>
-              </div>
+              </motion.div>
 
-              {/* Trust Badges */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-muted-foreground text-sm">
-                <div className="flex items-center gap-2">
-                  <Timer className="w-4 h-4 text-secondary" />
-                  <span>Intégration en 48h</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-secondary" />
-                  <span>Dès 5 000 FCFA/score</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-secondary" />
-                  <span>Conforme BCEAO</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-secondary" />
-                  <span>100% Africain</span>
-                </div>
-              </div>
-            </div>
-          </div>
+              {/* Stats row */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-white/10"
+              >
+                {[
+                  { value: "48h", label: "Intégration" },
+                  { value: "100%", label: "Population scorée" },
+                  { value: "5k", label: "FCFA/score" },
+                  { value: "BCEAO", label: "Conforme" },
+                ].map((stat, i) => (
+                  <div key={i} className="text-center lg:text-left">
+                    <p className="text-secondary font-display text-2xl md:text-3xl font-bold">{stat.value}</p>
+                    <p className="text-white/50 text-sm">{stat.label}</p>
+                  </div>
+                ))}
+              </motion.div>
+            </motion.div>
 
-          {/* Bottom pagination indicator */}
-          <div className="absolute bottom-8 right-8 hidden lg:flex items-center gap-4">
-            <span className="text-secondary font-display text-2xl font-bold">01</span>
-            <span className="text-muted-foreground/30 font-display text-xl">_</span>
-            <span className="text-muted-foreground/30 font-display text-xl">02</span>
-            <span className="text-muted-foreground/30 font-display text-xl">_</span>
-            <span className="text-muted-foreground/30 font-display text-xl">03</span>
-            <span className="text-muted-foreground/30 font-display text-xl">_</span>
+            {/* Left side - Image */}
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
+              className="relative order-1 lg:order-1 flex items-end justify-center lg:justify-start self-end"
+            >
+              <div className="relative">
+                {/* Glowing background effect */}
+                <div className="absolute inset-0 bg-gradient-to-t from-secondary/30 via-secondary/10 to-transparent rounded-full blur-3xl scale-110" />
+                
+                {/* Main image */}
+                <img 
+                  src={heroConsultant} 
+                  alt="Consultant africain professionnel" 
+                  className="relative z-10 h-[500px] lg:h-[calc(100vh-96px)] max-h-[750px] w-auto object-contain object-bottom drop-shadow-2xl"
+                />
+                
+                {/* Floating card - Top right */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ 
+                    opacity: 1, 
+                    scale: 1,
+                    y: [0, -8, 0],
+                  }}
+                  transition={{ 
+                    delay: 0.8,
+                    y: {
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }
+                  }}
+                  className="absolute top-[15%] -right-4 lg:-right-8 bg-white/95 backdrop-blur-lg rounded-2xl p-4 shadow-2xl z-20"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-secondary" />
+                    </div>
+                    <div>
+                      <p className="text-primary/60 text-xs font-medium">Taux d'inclusion</p>
+                      <p className="text-primary font-bold text-xl">+85%</p>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                {/* Floating card - Middle left */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ 
+                    opacity: 1, 
+                    scale: 1,
+                    y: [0, 8, 0],
+                  }}
+                  transition={{ 
+                    delay: 1,
+                    y: {
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }
+                  }}
+                  className="absolute top-[45%] -left-8 lg:-left-12 bg-white/95 backdrop-blur-lg rounded-2xl p-4 shadow-2xl z-20"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-primary/60 text-xs font-medium">Fiabilité</p>
+                      <p className="text-primary font-bold text-xl">99.9%</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
           </div>
         </div>
+        
+        {/* Bottom gradient fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
 
       {/* The Invisible Problem - Visualisation */}
