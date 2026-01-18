@@ -16,19 +16,21 @@ import {
   ArrowUpRight,
   Smartphone,
   Zap,
-  AlertTriangle
+  AlertTriangle,
+  Infinity
 } from "lucide-react";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useQuotaUsage, formatLimit } from "@/hooks/useQuotaUsage";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useCinetPay } from "@/hooks/useCinetPay";
 import { useTrialSubscription } from "@/hooks/useTrialSubscription";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { PRICING_PLANS, PARTNER_PLANS, getPlanById } from "@/lib/pricing-plans";
+import { PARTNER_PLANS } from "@/lib/pricing-plans";
 
 const PartnerBilling = () => {
-  const { subscription, usage, isLoading: subLoading } = useSubscription();
+  // SOURCE UNIQUE DE VÉRITÉ : useQuotaUsage récupère tout depuis la base de données
+  const { data: quota, isLoading: quotaLoading } = useQuotaUsage();
   const { invoices, isLoading: invLoading } = useInvoices();
   const { openPaymentPage, isLoading: paymentLoading } = useCinetPay();
   const { isTrialing, trialDaysLeft, isExpired, isLoading: trialLoading } = useTrialSubscription();
@@ -47,28 +49,30 @@ const PartnerBilling = () => {
         return <Badge variant="destructive">En retard</Badge>;
       case 'trialing':
         return <Badge className="bg-blue-100 text-blue-800"><Clock className="w-3 h-3 mr-1" />Essai</Badge>;
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Actif</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  // Get current plan info
-  const currentPlanSlug = (subscription?.plan as any)?.slug || subscription?.plan?.name?.toLowerCase() || 'starter';
-  const currentPlanId = currentPlanSlug;
-  const currentPlan = getPlanById(currentPlanId) || PRICING_PLANS[0];
-  
-  const planName = subscription?.plan?.name || 'Starter';
-  const planPrice = subscription?.plan?.price_monthly || 0;
-  const scoresLimit = subscription?.plan?.limits?.scores_per_month || currentPlan.quotas.wscore || 25;
-  const kycLimit = subscription?.plan?.limits?.kyc_per_month || currentPlan.quotas.wkyc || 10;
-  const currentPeriodEnd = subscription?.current_period_end;
+  // Utiliser les données de quota centralisées
+  const planName = quota?.plan.name || 'Gratuit';
+  const planSlug = quota?.plan.slug || 'free';
+  const scoresLimit = quota?.plan.limits.scores_per_month || 0;
+  const kycLimit = quota?.plan.limits.kyc_per_month || 0;
+  const isUnlimited = quota?.isUnlimited || false;
 
-  const scoresUsed = usage?.scoresUsed || 0;
-  const kycUsed = usage?.kycUsed || 0;
-  const scoresPercent = scoresLimit ? Math.min((scoresUsed / scoresLimit) * 100, 100) : 0;
-  const kycPercent = kycLimit ? Math.min((kycUsed / kycLimit) * 100, 100) : 0;
+  const scoresUsed = quota?.usage.scoresUsed || 0;
+  const kycUsed = quota?.usage.kycUsed || 0;
+  const scoresPercent = quota?.percentages.scores || 0;
+  const kycPercent = quota?.percentages.kyc || 0;
 
-  const handleUpgrade = async (plan: typeof PRICING_PLANS[0]) => {
+  // Récupérer le prix depuis PARTNER_PLANS (pour affichage seulement)
+  const partnerPlan = PARTNER_PLANS.find(p => p.id === planSlug);
+  const planPrice = partnerPlan?.price || 0;
+
+  const handleUpgrade = async (plan: typeof PARTNER_PLANS[0]) => {
     if (plan.price) {
       await openPaymentPage({
         planId: plan.id,
@@ -78,7 +82,7 @@ const PartnerBilling = () => {
     }
   };
 
-  // Get paid plans only (exclude trial)
+  // Get paid plans only (exclude trial and custom)
   const paidPlans = PARTNER_PLANS.filter(p => !p.isTrial && !p.isCustom);
 
   return (
@@ -117,13 +121,13 @@ const PartnerBilling = () => {
             <CardDescription>Votre plan actuel et vos quotas mensuels</CardDescription>
           </CardHeader>
           <CardContent>
-            {subLoading ? (
+            {quotaLoading ? (
               <Skeleton className="h-32 w-full" />
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Current Plan */}
                 <div className="p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl">
-                    <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="font-semibold text-xl">{planName}</h3>
                       <p className="text-3xl font-bold mt-2">
@@ -134,11 +138,11 @@ const PartnerBilling = () => {
                         )}
                       </p>
                     </div>
-                    {getStatusBadge(subscription?.status || 'active')}
+                    {getStatusBadge(isTrialing ? 'trialing' : 'active')}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>Renouvellement : {currentPeriodEnd 
-                      ? format(new Date(currentPeriodEnd), 'dd MMMM yyyy', { locale: fr })
+                    <span>Renouvellement : {quota?.periodEnd 
+                      ? format(new Date(quota.periodEnd), 'dd MMMM yyyy', { locale: fr })
                       : '1er du mois prochain'}</span>
                   </div>
                   <Button variant="outline" size="sm" className="mt-4" asChild>
@@ -149,40 +153,62 @@ const PartnerBilling = () => {
                   </Button>
                 </div>
 
-                {/* Usage */}
+                {/* Usage - Données centralisées depuis useQuotaUsage */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-sm text-muted-foreground">Consommation du mois</h4>
                   
-                  {/* W-SCORE Usage */}
+                  {/* Scoring Crédit Usage */}
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <BarChart3 className="w-4 h-4 text-secondary" />
-                        <span className="font-medium">W-SCORE</span>
+                        <BarChart3 className="w-4 h-4 text-orange-600" />
+                        <span className="font-medium">Scoring Crédit</span>
                       </div>
-                      <span className="text-sm font-semibold">{scoresUsed}/{scoresLimit}</span>
+                      <span className="text-sm font-semibold">
+                        {scoresUsed.toLocaleString('fr-FR')} / {formatLimit(scoresLimit)}
+                      </span>
                     </div>
-                    <Progress value={scoresPercent} className="h-2" />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {scoresPercent >= 80 && <span className="text-amber-600">Quota bientôt atteint • </span>}
-                      {scoresLimit - scoresUsed} évaluations restantes
-                    </p>
+                    {!isUnlimited ? (
+                      <>
+                        <Progress value={scoresPercent} className="h-2" />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {scoresPercent >= 80 && <span className="text-amber-600">Quota bientôt atteint • </span>}
+                          {quota?.remaining.scores.toLocaleString('fr-FR')} évaluations restantes
+                        </p>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1 text-sm text-green-600 font-medium mt-1">
+                        <Infinity className="w-4 h-4" />
+                        <span>Illimité</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* W-KYC Usage */}
+                  {/* Vérification Identité Usage */}
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Fingerprint className="w-4 h-4 text-primary" />
-                        <span className="font-medium">W-KYC</span>
+                        <Fingerprint className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium">Vérification Identité</span>
                       </div>
-                      <span className="text-sm font-semibold">{kycUsed}/{kycLimit}</span>
+                      <span className="text-sm font-semibold">
+                        {kycUsed.toLocaleString('fr-FR')} / {formatLimit(kycLimit)}
+                      </span>
                     </div>
-                    <Progress value={kycPercent} className="h-2" />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {kycPercent >= 80 && <span className="text-amber-600">Quota bientôt atteint • </span>}
-                      {kycLimit - kycUsed} vérifications restantes
-                    </p>
+                    {!isUnlimited ? (
+                      <>
+                        <Progress value={kycPercent} className="h-2" />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {kycPercent >= 80 && <span className="text-amber-600">Quota bientôt atteint • </span>}
+                          {quota?.remaining.kyc.toLocaleString('fr-FR')} vérifications restantes
+                        </p>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1 text-sm text-green-600 font-medium mt-1">
+                        <Infinity className="w-4 h-4" />
+                        <span>Illimité</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -191,7 +217,7 @@ const PartnerBilling = () => {
         </Card>
 
         {/* Upgrade Options - Show prominently for trial users */}
-        {(isTrialing || isExpired || currentPlanId !== 'partenaire-enterprise') && (
+        {(isTrialing || isExpired || planSlug !== 'partenaire-enterprise') && (
           <Card className={isTrialing || isExpired ? "border-primary shadow-md" : ""}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -215,19 +241,16 @@ const PartnerBilling = () => {
                         {plan.popular && <Badge variant="secondary">Recommandé</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {plan.quotas.dossiers} dossiers / mois
+                        {plan.quotas.dossiers ? `${plan.quotas.dossiers} dossiers / mois` : 'Illimité'}
                       </p>
                       <p className="font-bold mt-1">{plan.priceDisplay} {plan.currency}{plan.period}</p>
                     </div>
                     <Button 
-                      onClick={() => handleUpgrade({
-                        ...plan,
-                        quotas: { wscore: plan.quotas.dossiers, wkyc: plan.quotas.dossiers ? Math.floor(plan.quotas.dossiers / 2) : null }
-                      })}
-                      disabled={paymentLoading}
+                      onClick={() => handleUpgrade(plan)}
+                      disabled={paymentLoading || planSlug === plan.id}
                       variant={plan.popular ? "default" : "outline"}
                     >
-                      {isTrialing ? "Activer" : "Upgrader"}
+                      {planSlug === plan.id ? "Actuel" : isTrialing ? "Activer" : "Upgrader"}
                     </Button>
                   </div>
                 ))}

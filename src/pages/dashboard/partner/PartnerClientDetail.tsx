@@ -209,7 +209,7 @@ const PartnerClientDetail = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Historique des Évaluations</CardTitle>
-                  <CardDescription>W-SCORE et W-KYC effectués pour ce client</CardDescription>
+                  <CardDescription>Évaluations de scoring et de vérification effectuées pour ce client</CardDescription>
                 </div>
                 <Button onClick={() => setShowWizard(true)}>
                   <Plus className="w-4 h-4 mr-2" />
@@ -242,7 +242,7 @@ const PartnerClientDetail = () => {
                           </div>
                           <div>
                             <p className="font-medium">
-                              {ev.type === 'score' ? 'W-SCORE' : 'W-KYC'}
+                              {ev.type === 'score' ? 'Scoring Crédit' : 'Vérification Identité'}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(ev.createdAt), 'dd MMM yyyy à HH:mm', { locale: fr })}

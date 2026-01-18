@@ -2,40 +2,57 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
+/**
+ * Interface normalisée pour les limites de plan
+ * SOURCE UNIQUE DE VÉRITÉ - récupérée depuis subscription_plans.limits
+ */
+export interface PlanLimits {
+  scores_per_month: number;
+  kyc_per_month: number;
+  api_calls_per_month: number;
+  dossiers_per_month?: number;
+}
+
 export interface QuotaUsage {
   plan: {
+    id: string;
     name: string;
-    wScoreLimit: number;
-    wKycLimit: number;
-    apiCallsLimit: number;
+    slug: string;
+    limits: PlanLimits;
   };
   usage: {
-    wScoreUsed: number;
-    wKycUsed: number;
+    scoresUsed: number;
+    kycUsed: number;
     apiCallsUsed: number;
   };
   remaining: {
-    wScore: number;
-    wKyc: number;
+    scores: number;
+    kyc: number;
     apiCalls: number;
   };
   percentages: {
-    wScore: number;
-    wKyc: number;
+    scores: number;
+    kyc: number;
     apiCalls: number;
   };
   periodStart: string;
   periodEnd: string;
+  isUnlimited: boolean;
 }
 
-// Plan limits based on pricing page
-const PLAN_LIMITS: Record<string, { wScore: number; wKyc: number; apiCalls: number }> = {
-  free: { wScore: 50, wKyc: 10, apiCalls: 100 },
-  starter: { wScore: 500, wKyc: 100, apiCalls: 5000 },
-  pro: { wScore: 2000, wKyc: 500, apiCalls: 20000 },
-  enterprise: { wScore: 10000, wKyc: 2000, apiCalls: 100000 },
+// Limites par défaut si aucun plan n'est trouvé (plan gratuit implicite)
+const DEFAULT_LIMITS: PlanLimits = {
+  scores_per_month: 5,
+  kyc_per_month: 2,
+  api_calls_per_month: 50,
+  dossiers_per_month: 5,
 };
 
+/**
+ * Hook centralisé pour récupérer l'usage des quotas
+ * Récupère TOUTES les données depuis la base de données
+ * Aucune constante hardcodée - la DB est la source unique de vérité
+ */
 export const useQuotaUsage = () => {
   const { user } = useAuth();
 
@@ -44,88 +61,153 @@ export const useQuotaUsage = () => {
     queryFn: async (): Promise<QuotaUsage> => {
       if (!user?.id) throw new Error("User not authenticated");
 
-      // Get current subscription
-      const { data: subscription } = await supabase
+      // 1. Récupérer l'abonnement actif avec le plan
+      const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
-        .select('plan_id, current_period_start, current_period_end')
+        .select(`
+          id,
+          plan_id,
+          current_period_start,
+          current_period_end,
+          status,
+          plan:subscription_plans (
+            id,
+            name,
+            slug,
+            limits
+          )
+        `)
         .eq('user_id', user.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'trialing'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      // Get plan details
-      let planName = 'free';
-      if (subscription?.plan_id) {
-        const { data: plan } = await supabase
-          .from('subscription_plans')
-          .select('name')
-          .eq('id', subscription.plan_id)
-          .maybeSingle();
-        planName = plan?.name?.toLowerCase() || 'free';
+      if (subError) {
+        console.error('Error fetching subscription:', subError);
       }
 
-      const limits = PLAN_LIMITS[planName] || PLAN_LIMITS.free;
+      // 2. Extraire les limites du plan depuis la base
+      let planLimits: PlanLimits = DEFAULT_LIMITS;
+      let planInfo = {
+        id: 'free',
+        name: 'Gratuit',
+        slug: 'free',
+        limits: DEFAULT_LIMITS,
+      };
 
-      // Calculate period dates
+      if (subscription?.plan) {
+        const dbLimits = subscription.plan.limits as Record<string, number> | null;
+        
+        planLimits = {
+          scores_per_month: dbLimits?.scores_per_month ?? DEFAULT_LIMITS.scores_per_month,
+          kyc_per_month: dbLimits?.kyc_per_month ?? DEFAULT_LIMITS.kyc_per_month,
+          api_calls_per_month: dbLimits?.api_calls_per_month ?? DEFAULT_LIMITS.api_calls_per_month,
+          dossiers_per_month: dbLimits?.dossiers_per_month,
+        };
+
+        planInfo = {
+          id: subscription.plan.id,
+          name: subscription.plan.name,
+          slug: subscription.plan.slug,
+          limits: planLimits,
+        };
+      }
+
+      // 3. Calculer les dates de période
       const now = new Date();
       const periodStart = subscription?.current_period_start || 
         new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const periodEnd = subscription?.current_period_end || 
         new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-      // Count W-SCORE requests this period
-      const { count: wScoreCount } = await supabase
-        .from('scoring_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', periodStart)
-        .lte('created_at', periodEnd);
+      // 4. Compter l'usage réel depuis la base
+      const [scoresResult, kycResult, apiResult] = await Promise.all([
+        // Scoring requests
+        supabase
+          .from('scoring_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', periodStart)
+          .lte('created_at', periodEnd),
+        
+        // KYC requests
+        supabase
+          .from('kyc_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('partner_id', user.id)
+          .gte('created_at', periodStart)
+          .lte('created_at', periodEnd),
+        
+        // API calls
+        supabase
+          .from('api_calls')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', periodStart)
+          .lte('created_at', periodEnd),
+      ]);
 
-      // Count W-KYC requests this period
-      const { count: wKycCount } = await supabase
-        .from('kyc_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('partner_id', user.id)
-        .gte('created_at', periodStart)
-        .lte('created_at', periodEnd);
+      const scoresUsed = scoresResult.count || 0;
+      const kycUsed = kycResult.count || 0;
+      const apiCallsUsed = apiResult.count || 0;
 
-      // Count API calls this period
-      const { count: apiCount } = await supabase
-        .from('api_calls')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', periodStart)
-        .lte('created_at', periodEnd);
+      // 5. Vérifier si le plan est illimité (-1 signifie illimité)
+      const isUnlimited = planLimits.scores_per_month === -1;
 
-      const wScoreUsed = wScoreCount || 0;
-      const wKycUsed = wKycCount || 0;
-      const apiCallsUsed = apiCount || 0;
+      // 6. Calculer les valeurs restantes et pourcentages
+      const calculateRemaining = (used: number, limit: number): number => {
+        if (limit === -1) return Infinity; // Illimité
+        return Math.max(0, limit - used);
+      };
+
+      const calculatePercentage = (used: number, limit: number): number => {
+        if (limit === -1) return 0; // Illimité = toujours 0%
+        if (limit === 0) return 100;
+        return Math.min(100, (used / limit) * 100);
+      };
 
       return {
-        plan: {
-          name: planName.charAt(0).toUpperCase() + planName.slice(1),
-          wScoreLimit: limits.wScore,
-          wKycLimit: limits.wKyc,
-          apiCallsLimit: limits.apiCalls,
-        },
+        plan: planInfo,
         usage: {
-          wScoreUsed,
-          wKycUsed,
+          scoresUsed,
+          kycUsed,
           apiCallsUsed,
         },
         remaining: {
-          wScore: Math.max(0, limits.wScore - wScoreUsed),
-          wKyc: Math.max(0, limits.wKyc - wKycUsed),
-          apiCalls: Math.max(0, limits.apiCalls - apiCallsUsed),
+          scores: calculateRemaining(scoresUsed, planLimits.scores_per_month),
+          kyc: calculateRemaining(kycUsed, planLimits.kyc_per_month),
+          apiCalls: calculateRemaining(apiCallsUsed, planLimits.api_calls_per_month),
         },
         percentages: {
-          wScore: Math.min(100, (wScoreUsed / limits.wScore) * 100),
-          wKyc: Math.min(100, (wKycUsed / limits.wKyc) * 100),
-          apiCalls: Math.min(100, (apiCallsUsed / limits.apiCalls) * 100),
+          scores: calculatePercentage(scoresUsed, planLimits.scores_per_month),
+          kyc: calculatePercentage(kycUsed, planLimits.kyc_per_month),
+          apiCalls: calculatePercentage(apiCallsUsed, planLimits.api_calls_per_month),
         },
         periodStart,
         periodEnd,
+        isUnlimited,
       };
     },
     enabled: !!user?.id,
+    staleTime: 30 * 1000, // 30 secondes
+    refetchOnWindowFocus: true,
   });
+};
+
+/**
+ * Hook helper pour formater l'affichage des limites
+ */
+export const formatLimit = (limit: number): string => {
+  if (limit === -1) return "Illimité";
+  return limit.toLocaleString('fr-FR');
+};
+
+/**
+ * Hook helper pour déterminer le niveau d'alerte basé sur le pourcentage
+ */
+export const getQuotaAlertLevel = (percentage: number): 'safe' | 'warning' | 'critical' => {
+  if (percentage >= 90) return 'critical';
+  if (percentage >= 75) return 'warning';
+  return 'safe';
 };

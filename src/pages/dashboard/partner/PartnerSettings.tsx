@@ -9,12 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useSettings } from "@/hooks/useSettings";
-import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Building2, 
   Bell,
   Shield,
-  Globe
+  Globe,
+  Loader2
 } from "lucide-react";
 import {
   Select,
@@ -23,11 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const PartnerSettings = () => {
-  const { profile } = useAuth();
-  const { settings: savedSettings, isLoading, updateSettings } = useSettings();
-  const { toast } = useToast();
+  const { profile, user, refreshProfile } = useAuth();
+  const { settings: savedSettings, isLoading, updateSettings, isUpdating } = useSettings();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [settings, setSettings] = useState({
     company_name: '',
@@ -41,13 +43,23 @@ const PartnerSettings = () => {
     api_rate_limit: '1000',
   });
 
+  // Load saved settings or profile data
   useEffect(() => {
-    if (savedSettings) {
+    if (savedSettings && Object.keys(savedSettings).length > 0) {
       setSettings(prev => ({
         ...prev,
-        ...savedSettings,
+        company_name: savedSettings.company_name || profile?.company || prev.company_name,
+        company_email: savedSettings.company_email || profile?.email || prev.company_email,
+        phone: savedSettings.phone || profile?.phone || prev.phone,
+        country: savedSettings.country || prev.country,
+        timezone: savedSettings.timezone || prev.timezone,
+        email_notifications: savedSettings.email_notifications ?? prev.email_notifications,
+        webhook_notifications: savedSettings.webhook_notifications ?? prev.webhook_notifications,
+        sms_notifications: savedSettings.sms_notifications ?? prev.sms_notifications,
+        api_rate_limit: savedSettings.api_rate_limit || prev.api_rate_limit,
       }));
     } else if (profile) {
+      // Fallback to profile data if no settings saved yet
       setSettings(prev => ({
         ...prev,
         company_name: profile.company || '',
@@ -58,11 +70,36 @@ const PartnerSettings = () => {
   }, [savedSettings, profile]);
 
   const handleSave = async () => {
-    await updateSettings(settings);
-    toast({
-      title: "Paramètres enregistrés",
-      description: "Vos modifications ont été sauvegardées avec succès.",
-    });
+    if (!user) return;
+    setIsSaving(true);
+    
+    try {
+      // Update profile table with phone and company
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          phone: settings.phone || null,
+          company: settings.company_name || null,
+        })
+        .eq('id', user.id);
+      
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        toast.error('Erreur lors de la mise à jour du profil');
+        return;
+      }
+
+      // Update settings
+      updateSettings(settings);
+      
+      // Refresh profile data
+      await refreshProfile();
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -282,8 +319,15 @@ const PartnerSettings = () => {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button onClick={handleSave}>
-            Enregistrer les modifications
+          <Button onClick={handleSave} disabled={isSaving || isUpdating}>
+            {isSaving || isUpdating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Enregistrement...
+              </>
+            ) : (
+              'Enregistrer les modifications'
+            )}
           </Button>
         </div>
       </div>

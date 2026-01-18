@@ -227,7 +227,7 @@ const PartnerValidateCertificate = () => {
                       <p className="text-2xl font-bold text-primary">
                         {validationResult.dossier.certificate?.score || 'N/A'}
                       </p>
-                      <p className="text-xs text-muted-foreground">W-Score</p>
+                      <p className="text-xs text-muted-foreground">Score Crédit</p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <Badge variant={validationResult.dossier.aml_screening?.is_clear ? 'default' : 'destructive'}>

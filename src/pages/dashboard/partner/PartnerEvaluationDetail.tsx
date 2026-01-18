@@ -349,7 +349,7 @@ const PartnerEvaluationDetail = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground mb-1">Score W-SCORE</p>
+                    <p className="text-sm text-muted-foreground mb-1">Score Crédit</p>
                     <p className="text-5xl font-bold text-primary">
                       {evaluation.score || '--'}
                     </p>
@@ -427,7 +427,7 @@ const PartnerEvaluationDetail = () => {
                   Décomposition du Score (6 Axes)
                 </CardTitle>
                 <CardDescription>
-                  Analyse détaillée des composantes du W-SCORE
+                  Analyse détaillée des composantes du score
                 </CardDescription>
               </CardHeader>
               <CardContent>

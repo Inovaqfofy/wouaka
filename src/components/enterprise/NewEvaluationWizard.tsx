@@ -131,7 +131,7 @@ export interface EvaluationData {
 const products = [
   {
     id: 'w-kyc' as ProductType,
-    name: 'W-KYC',
+    name: 'Vérification Identité',
     description: 'Vérification d\'identité uniquement',
     icon: FileCheck,
     color: 'text-blue-500',
@@ -141,7 +141,7 @@ const products = [
   },
   {
     id: 'w-score' as ProductType,
-    name: 'W-SCORE',
+    name: 'Scoring Crédit',
     description: 'Scoring crédit uniquement',
     icon: BarChart3,
     color: 'text-orange-500',
@@ -151,7 +151,7 @@ const products = [
   },
   {
     id: 'wouaka-core' as ProductType,
-    name: 'WOUAKA CORE',
+    name: 'Dossier Complet',
     description: 'Solution complète KYC + Score',
     icon: Layers,
     color: 'text-emerald-500',

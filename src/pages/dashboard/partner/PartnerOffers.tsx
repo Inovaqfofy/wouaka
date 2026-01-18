@@ -10,12 +10,13 @@ import {
   Store, 
   Search, 
   Plus,
-  Edit,
   Trash2,
   Eye,
   Users
 } from "lucide-react";
 import { usePartnerOffers } from "@/hooks/usePartnerOffers";
+import { AddOfferDialog } from "@/components/partner/AddOfferDialog";
+import { EditOfferDialog } from "@/components/partner/EditOfferDialog";
 
 const PartnerOffers = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,10 +103,7 @@ const PartnerOffers = () => {
               <CardTitle>Mes Offres de Financement</CardTitle>
               <CardDescription>Gérez vos offres publiées sur le marketplace</CardDescription>
             </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvelle Offre
-            </Button>
+            <AddOfferDialog />
           </CardHeader>
           <CardContent>
             <div className="mb-4">
@@ -133,10 +131,12 @@ const PartnerOffers = () => {
                 <p className="text-muted-foreground mb-4">
                   Créez votre première offre pour la publier sur le marketplace
                 </p>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Créer une offre
-                </Button>
+                <AddOfferDialog trigger={
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer une offre
+                  </Button>
+                } />
               </div>
             ) : (
               <div className="space-y-4">
@@ -182,9 +182,7 @@ const PartnerOffers = () => {
                             onCheckedChange={(checked) => updateOffer.mutate({ id: offer.id, is_active: checked })}
                           />
                         </div>
-                        <Button variant="outline" size="icon">
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                        <EditOfferDialog offer={offer} />
                         <Button 
                           variant="outline" 
                           size="icon" 

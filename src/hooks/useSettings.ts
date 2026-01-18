@@ -5,16 +5,29 @@ import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
 export interface UserSettings {
+  // Company
+  company_name?: string;
+  company_email?: string;
+  phone?: string;
+  country?: string;
+  // Notifications
+  email_notifications?: boolean;
+  webhook_notifications?: boolean;
+  sms_notifications?: boolean;
+  // API
+  api_rate_limit?: string;
+  timezone?: string;
+  webhook_retries?: string;
+  enable_logging?: boolean;
+  // Security
+  ip_whitelist?: string;
+  // Legacy mappings (for backward compatibility)
   companyName?: string;
   contactEmail?: string;
-  webhookRetries?: string;
-  timezone?: string;
   notifyOnError?: boolean;
   notifyOnQuotaWarning?: boolean;
   notifyOnNewFeatures?: boolean;
-  ipWhitelist?: string;
   rateLimitBurst?: string;
-  enableLogging?: boolean;
 }
 
 export const useSettings = () => {
@@ -38,36 +51,64 @@ export const useSettings = () => {
       const settingsMap: UserSettings = {};
       (data || []).forEach((setting) => {
         const value = setting.value as Record<string, unknown>;
+        const actualValue = value?.value;
+        
+        // Map setting keys to interface properties
         switch (setting.key) {
+          // Company settings
           case 'company_name':
-            settingsMap.companyName = String(value?.value || '');
+            settingsMap.company_name = String(actualValue || '');
+            settingsMap.companyName = String(actualValue || ''); // Legacy
             break;
+          case 'company_email':
           case 'contact_email':
-            settingsMap.contactEmail = String(value?.value || '');
+            settingsMap.company_email = String(actualValue || '');
+            settingsMap.contactEmail = String(actualValue || ''); // Legacy
             break;
-          case 'webhook_retries':
-            settingsMap.webhookRetries = String(value?.value || '3');
+          case 'phone':
+            settingsMap.phone = String(actualValue || '');
             break;
-          case 'timezone':
-            settingsMap.timezone = String(value?.value || 'Africa/Abidjan');
+          case 'country':
+            settingsMap.country = String(actualValue || 'CI');
+            break;
+          // Notifications
+          case 'email_notifications':
+            settingsMap.email_notifications = Boolean(actualValue ?? true);
+            break;
+          case 'webhook_notifications':
+            settingsMap.webhook_notifications = Boolean(actualValue ?? true);
+            break;
+          case 'sms_notifications':
+            settingsMap.sms_notifications = Boolean(actualValue ?? false);
             break;
           case 'notify_on_error':
-            settingsMap.notifyOnError = Boolean(value?.value ?? true);
+            settingsMap.notifyOnError = Boolean(actualValue ?? true);
             break;
           case 'notify_on_quota_warning':
-            settingsMap.notifyOnQuotaWarning = Boolean(value?.value ?? true);
+            settingsMap.notifyOnQuotaWarning = Boolean(actualValue ?? true);
             break;
           case 'notify_on_new_features':
-            settingsMap.notifyOnNewFeatures = Boolean(value?.value ?? false);
+            settingsMap.notifyOnNewFeatures = Boolean(actualValue ?? false);
             break;
-          case 'ip_whitelist':
-            settingsMap.ipWhitelist = String(value?.value || '');
+          // API
+          case 'api_rate_limit':
+            settingsMap.api_rate_limit = String(actualValue || '1000');
             break;
           case 'rate_limit_burst':
-            settingsMap.rateLimitBurst = String(value?.value || '100');
+            settingsMap.rateLimitBurst = String(actualValue || '100');
+            break;
+          case 'timezone':
+            settingsMap.timezone = String(actualValue || 'Africa/Abidjan');
+            break;
+          case 'webhook_retries':
+            settingsMap.webhook_retries = String(actualValue || '3');
             break;
           case 'enable_logging':
-            settingsMap.enableLogging = Boolean(value?.value ?? true);
+            settingsMap.enable_logging = Boolean(actualValue ?? true);
+            break;
+          // Security
+          case 'ip_whitelist':
+            settingsMap.ip_whitelist = String(actualValue || '');
             break;
         }
       });
@@ -82,36 +123,47 @@ export const useSettings = () => {
     mutationFn: async (newSettings: UserSettings) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const settingsToUpsert = [
-        { key: 'company_name', value: { value: newSettings.companyName || '' } as Json, category: 'company' },
-        { key: 'contact_email', value: { value: newSettings.contactEmail || '' } as Json, category: 'company' },
-        { key: 'webhook_retries', value: { value: newSettings.webhookRetries || '3' } as Json, category: 'api' },
-        { key: 'timezone', value: { value: newSettings.timezone || 'Africa/Abidjan' } as Json, category: 'general' },
-        { key: 'notify_on_error', value: { value: newSettings.notifyOnError ?? true } as Json, category: 'notifications' },
-        { key: 'notify_on_quota_warning', value: { value: newSettings.notifyOnQuotaWarning ?? true } as Json, category: 'notifications' },
-        { key: 'notify_on_new_features', value: { value: newSettings.notifyOnNewFeatures ?? false } as Json, category: 'notifications' },
-        { key: 'ip_whitelist', value: { value: newSettings.ipWhitelist || '' } as Json, category: 'security' },
-        { key: 'rate_limit_burst', value: { value: newSettings.rateLimitBurst || '100' } as Json, category: 'api' },
-        { key: 'enable_logging', value: { value: newSettings.enableLogging ?? true } as Json, category: 'api' },
-      ];
+      // Build the settings to upsert based on what's in newSettings
+      const settingsToUpsert: Array<{
+        user_id: string;
+        key: string;
+        value: Json;
+        category: string;
+        is_system: boolean;
+      }> = [];
 
-      // Delete existing settings and insert new ones
-      await supabase
-        .from('settings')
-        .delete()
-        .eq('user_id', user.id)
-        .in('key', settingsToUpsert.map(s => s.key));
+      // Map of setting keys to their category
+      const settingConfig: Record<string, { category: string; getValue: () => Json }> = {
+        company_name: { category: 'company', getValue: () => ({ value: newSettings.company_name || newSettings.companyName || '' }) },
+        company_email: { category: 'company', getValue: () => ({ value: newSettings.company_email || newSettings.contactEmail || '' }) },
+        phone: { category: 'company', getValue: () => ({ value: newSettings.phone || '' }) },
+        country: { category: 'company', getValue: () => ({ value: newSettings.country || 'CI' }) },
+        email_notifications: { category: 'notifications', getValue: () => ({ value: newSettings.email_notifications ?? true }) },
+        webhook_notifications: { category: 'notifications', getValue: () => ({ value: newSettings.webhook_notifications ?? true }) },
+        sms_notifications: { category: 'notifications', getValue: () => ({ value: newSettings.sms_notifications ?? false }) },
+        api_rate_limit: { category: 'api', getValue: () => ({ value: newSettings.api_rate_limit || '1000' }) },
+        timezone: { category: 'general', getValue: () => ({ value: newSettings.timezone || 'Africa/Abidjan' }) },
+        webhook_retries: { category: 'api', getValue: () => ({ value: newSettings.webhook_retries || '3' }) },
+        enable_logging: { category: 'api', getValue: () => ({ value: newSettings.enable_logging ?? true }) },
+        ip_whitelist: { category: 'security', getValue: () => ({ value: newSettings.ip_whitelist || '' }) },
+      };
 
+      for (const [key, config] of Object.entries(settingConfig)) {
+        settingsToUpsert.push({
+          user_id: user.id,
+          key,
+          value: config.getValue(),
+          category: config.category,
+          is_system: false,
+        });
+      }
+
+      // Use upsert with onConflict - constraint is on (user_id, category, key)
       const { error } = await supabase
         .from('settings')
-        .insert(
-          settingsToUpsert.map(s => ({
-            user_id: user.id,
-            key: s.key,
-            value: s.value,
-            category: s.category,
-            is_system: false,
-          }))
+        .upsert(
+          settingsToUpsert,
+          { onConflict: 'user_id,category,key' }
         );
 
       if (error) throw error;

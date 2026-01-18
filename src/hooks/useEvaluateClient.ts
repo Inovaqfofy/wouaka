@@ -498,9 +498,9 @@ export function useEvaluateClient() {
       queryClient.invalidateQueries({ queryKey: ['partner-evaluations'] });
 
       const productNames = {
-        'w-kyc': 'W-KYC',
-        'w-score': 'W-SCORE',
-        'wouaka-core': 'WOUAKA CORE',
+        'w-kyc': 'Vérification Identité',
+        'w-score': 'Scoring Crédit',
+        'wouaka-core': 'Dossier Complet',
       };
 
       toast.success(

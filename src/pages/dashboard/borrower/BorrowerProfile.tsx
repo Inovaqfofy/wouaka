@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/useSettings";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { 
   User, 
   Mail, 
@@ -16,37 +18,153 @@ import {
   Lock, 
   Bell,
   Shield,
-  Camera
+  Camera,
+  Loader2,
+  Save
 } from "lucide-react";
 
 const BorrowerProfile = () => {
-  const { profile, user } = useAuth();
-  const { toast } = useToast();
+  const { profile, user, refreshProfile } = useAuth();
+  const { settings: savedSettings, updateSettings, isUpdating } = useSettings();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [fullName, setFullName] = useState(profile?.full_name || "");
-  const [phone, setPhone] = useState(profile?.phone || "");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  const initials = profile?.full_name
+  // Load profile data
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setPhone(profile.phone || "");
+      setAvatarUrl(profile.avatar_url || "");
+    }
+  }, [profile]);
+
+  // Load settings
+  useEffect(() => {
+    if (savedSettings) {
+      setEmailNotifications(savedSettings.email_notifications ?? true);
+      setSmsNotifications(savedSettings.sms_notifications ?? false);
+    }
+  }, [savedSettings]);
+
+  const initials = fullName
     ?.split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase();
 
-  const handleSaveProfile = () => {
-    toast({
-      title: "Profil mis à jour",
-      description: "Vos informations ont été enregistrées avec succès.",
-    });
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Veuillez sélectionner une image');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setUploadingAvatar(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Add cache-busting parameter
+      const newAvatarUrl = `${publicUrl}?t=${Date.now()}`;
+      setAvatarUrl(newAvatarUrl);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: newAvatarUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast.success('Photo de profil mise à jour');
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      toast.error("Erreur lors du téléchargement de l'avatar");
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
-  const handleChangePassword = () => {
-    toast({
-      title: "Email envoyé",
-      description: "Un lien de réinitialisation a été envoyé à votre adresse email.",
-    });
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    setSavingProfile(true);
+
+    try {
+      // Update profile in database
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          phone: phone || null,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update notification settings
+      updateSettings({
+        email_notifications: emailNotifications,
+        sms_notifications: smsNotifications,
+      });
+
+      // Refresh profile data in auth context
+      await refreshProfile();
+
+      toast.success('Profil mis à jour avec succès');
+    } catch (err) {
+      console.error('Profile update error:', err);
+      toast.error('Erreur lors de la mise à jour du profil');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user?.email) return;
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Un lien de réinitialisation a été envoyé à votre adresse email');
+    } catch (err) {
+      console.error('Password reset error:', err);
+      toast.error('Erreur lors de l\'envoi du lien de réinitialisation');
+    }
   };
 
   return (
@@ -64,7 +182,7 @@ const BorrowerProfile = () => {
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarImage src={avatarUrl || undefined} />
                   <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
                     {initials}
                   </AvatarFallback>
@@ -73,14 +191,33 @@ const BorrowerProfile = () => {
                   size="icon" 
                   variant="secondary" 
                   className="absolute bottom-0 right-0 rounded-full w-8 h-8"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
                 >
-                  <Camera className="w-4 h-4" />
+                  {uploadingAvatar ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
                 </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
               </div>
               <div>
-                <p className="font-medium">{profile?.full_name || 'Utilisateur'}</p>
+                <p className="font-medium">{fullName || 'Utilisateur'}</p>
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
-                <Button variant="outline" size="sm" className="mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                >
                   Changer la photo
                 </Button>
               </div>
@@ -134,9 +271,6 @@ const BorrowerProfile = () => {
                 />
               </div>
             </div>
-            <Button onClick={handleSaveProfile}>
-              Enregistrer les modifications
-            </Button>
           </CardContent>
         </Card>
 
@@ -198,7 +332,7 @@ const BorrowerProfile = () => {
                 <div>
                   <p className="font-medium">Mot de passe</p>
                   <p className="text-sm text-muted-foreground">
-                    Dernière modification il y a 30 jours
+                    Réinitialisez votre mot de passe par email
                   </p>
                 </div>
               </div>
@@ -208,6 +342,23 @@ const BorrowerProfile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <Button onClick={handleSaveProfile} disabled={savingProfile || isUpdating}>
+            {savingProfile || isUpdating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Enregistrement...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Enregistrer les modifications
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </DashboardLayout>
   );

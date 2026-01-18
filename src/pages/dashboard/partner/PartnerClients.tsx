@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCustomerProfiles } from "@/hooks/useCustomerProfiles";
+import { AddClientDialog } from "@/components/partner/AddClientDialog";
 
 const PartnerClients = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,10 +112,7 @@ const PartnerClients = () => {
               <CardTitle>Liste des Clients</CardTitle>
               <CardDescription>Gérez vos clients et leurs profils</CardDescription>
             </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau Client
-            </Button>
+            <AddClientDialog />
           </CardHeader>
           <CardContent>
             <div className="mb-4">
@@ -144,10 +142,12 @@ const PartnerClients = () => {
                     ? "Commencez par ajouter votre premier client"
                     : "Aucun client ne correspond à votre recherche"}
                 </p>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter un client
-                </Button>
+                <AddClientDialog trigger={
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter un client
+                  </Button>
+                } />
               </div>
             ) : (
               <div className="space-y-3">
