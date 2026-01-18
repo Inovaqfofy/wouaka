@@ -392,8 +392,8 @@ const PartnerEvaluationDetail = () => {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Shield className="w-5 h-5 text-purple-600" />
+                    <div className="p-2 bg-[#0A3D2C]/10 rounded-lg">
+                      <Shield className="w-5 h-5 text-[#0A3D2C]" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{evaluation.confidence ? `${evaluation.confidence}%` : '--'}</p>

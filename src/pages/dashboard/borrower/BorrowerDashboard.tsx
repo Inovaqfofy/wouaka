@@ -139,8 +139,8 @@ const BorrowerDashboard = () => {
                   <p className="text-sm text-muted-foreground">Offres disponibles</p>
                   <p className="text-2xl font-bold">{offersLoading ? '--' : offersCount}</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <Store className="w-6 h-6 text-purple-600" />
+                <div className="p-3 bg-[#D4A017]/10 rounded-full">
+                  <Store className="w-6 h-6 text-[#D4A017]" />
                 </div>
               </div>
               <Link to="/dashboard/borrower/offers" className="text-xs text-primary hover:underline mt-2 inline-block">

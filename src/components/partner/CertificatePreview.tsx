@@ -71,7 +71,7 @@ export const CertificatePreview = ({ preview }: CertificatePreviewProps) => {
           <div className="flex items-center gap-3">
             <TrendingUp className="w-5 h-5 text-muted-foreground" />
             <div>
-              <p className="text-sm text-muted-foreground">W-Score</p>
+              <p className="text-sm text-muted-foreground">Score</p>
               <p className={`text-2xl font-bold ${getScoreColor(preview.score)}`}>
                 {preview.score}
               </p>

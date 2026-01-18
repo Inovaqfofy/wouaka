@@ -66,7 +66,7 @@ serve(async (req) => {
       .eq("user_id", user.id);
 
     const isAdmin = userRoles?.some(r => 
-      r.role === 'SUPER_ADMIN' || r.role === 'ANALYSTE' || r.role === 'admin' || r.role === 'super_admin'
+      r.role === 'SUPER_ADMIN' || r.role === 'admin' || r.role === 'super_admin'
     );
     if (!isAdmin) {
       throw new Error("Accès réservé aux administrateurs");

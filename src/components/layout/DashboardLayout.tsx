@@ -24,7 +24,9 @@ import {
   Brain,
   AlertTriangle,
   Power,
-  Radio
+  Radio,
+  FlaskConical,
+  Headphones
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -32,12 +34,20 @@ import logoWouaka from "@/assets/logo-wouaka.png";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { UserMenu } from "@/components/auth/UserMenu";
+import { ROLE_LABELS, ROLE_CONFIG, type AppRole } from "@/lib/roles";
 
 interface DashboardLayoutProps {
   children: ReactNode;
   role: "admin" | "partner" | "borrower";
   title: string;
 }
+
+// Mapping from dashboard role to AppRole
+const dashboardRoleToAppRole: Record<"admin" | "partner" | "borrower", AppRole> = {
+  admin: "SUPER_ADMIN",
+  partner: "PARTENAIRE",
+  borrower: "EMPRUNTEUR",
+};
 
 const menuItems = {
   admin: [
@@ -58,6 +68,8 @@ const menuItems = {
     { icon: Shield, label: "Security Watch", href: "/dashboard/admin/security" },
     { icon: Power, label: "Kill Switch", href: "/dashboard/admin/emergency" },
     { icon: Radio, label: "Lockdown Monitor", href: "/dashboard/admin/lockdown-monitor" },
+    { icon: FlaskConical, label: "Tests Sécurité", href: "/dashboard/admin/security-tests" },
+    { icon: Headphones, label: "Support", href: "/dashboard/admin/support" },
     { icon: Settings, label: "Paramètres", href: "/dashboard/admin/settings" },
   ],
   partner: [
@@ -79,19 +91,8 @@ const menuItems = {
     { icon: FileCheck, label: "Mes Candidatures", href: "/dashboard/borrower/applications" },
     { icon: Store, label: "Offres Disponibles", href: "/dashboard/borrower/offers" },
     { icon: Users, label: "Mon Profil", href: "/dashboard/borrower/profile" },
+    { icon: Headphones, label: "Support", href: "/dashboard/borrower/support" },
   ],
-};
-
-const roleLabels = {
-  admin: "Super Admin",
-  partner: "Partenaire",
-  borrower: "Emprunteur",
-};
-
-const roleBadgeVariants = {
-  admin: "destructive" as const,
-  partner: "default" as const,
-  borrower: "secondary" as const,
 };
 
 export const DashboardLayout = ({ children, role, title }: DashboardLayoutProps) => {
@@ -131,8 +132,8 @@ export const DashboardLayout = ({ children, role, title }: DashboardLayoutProps)
         {/* Role Badge */}
         {sidebarOpen && (
           <div className="px-4 py-3 border-b border-primary-foreground/10">
-            <Badge variant={roleBadgeVariants[role]} className="w-full justify-center">
-              {roleLabels[role]}
+            <Badge variant={ROLE_CONFIG[dashboardRoleToAppRole[role]].variant} className="w-full justify-center">
+              {ROLE_LABELS[dashboardRoleToAppRole[role]]}
             </Badge>
           </div>
         )}
@@ -185,8 +186,8 @@ export const DashboardLayout = ({ children, role, title }: DashboardLayoutProps)
               </button>
             </div>
             <div className="px-4 py-3 border-b border-primary-foreground/10">
-              <Badge variant={roleBadgeVariants[role]} className="w-full justify-center">
-                {roleLabels[role]}
+              <Badge variant={ROLE_CONFIG[dashboardRoleToAppRole[role]].variant} className="w-full justify-center">
+                {ROLE_LABELS[dashboardRoleToAppRole[role]]}
               </Badge>
             </div>
             <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">

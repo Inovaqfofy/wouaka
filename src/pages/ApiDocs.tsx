@@ -85,7 +85,7 @@ const ApiDocs = () => {
       <SEOHead
         title="Référence API OpenAPI"
         description="Documentation OpenAPI/Swagger complète pour l'API Wouaka - scoring de crédit et vérification d'identité pour l'Afrique de l'Ouest."
-        canonical="/api-docs"
+        canonical="/api-reference"
       />
       
       <div className="min-h-screen bg-background">

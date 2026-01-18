@@ -21,7 +21,12 @@ import PaymentConfirmation from "./pages/PaymentConfirmation";
 import SubmitDocuments from "./pages/SubmitDocuments";
 import Partenaires from "./pages/Partenaires";
 import Developer from "./pages/Developer";
+import DeveloperSandbox from "./pages/DeveloperSandbox";
+import DeveloperStatus from "./pages/DeveloperStatus";
+import DeveloperWebhooks from "./pages/DeveloperWebhooks";
 import ApiDocs from "./pages/ApiDocs";
+import ROISimulator from "./pages/ROISimulator";
+import Compliance from "./pages/Compliance";
 
 // Auth pages
 import Auth from "./pages/Auth";
@@ -48,6 +53,7 @@ import AdminAnalytics from "./pages/dashboard/admin/AdminAnalytics";
 import AdminComplianceCertificate from "./pages/dashboard/admin/AdminComplianceCertificate";
 import AIMonitoring from "./pages/dashboard/admin/AIMonitoring";
 import SecurityWatch from "./pages/dashboard/admin/SecurityWatch";
+import SecurityTests from "./pages/dashboard/admin/SecurityTests";
 import EmergencyControl from "./pages/dashboard/admin/EmergencyControl";
 import LockdownMonitor from "./pages/dashboard/admin/LockdownMonitor";
 
@@ -76,6 +82,11 @@ import BorrowerDocuments from "./pages/dashboard/borrower/BorrowerDocuments";
 import BorrowerApplications from "./pages/dashboard/borrower/BorrowerApplications";
 import BorrowerOffers from "./pages/dashboard/borrower/BorrowerOffers";
 import BorrowerProfile from "./pages/dashboard/borrower/BorrowerProfile";
+import BorrowerSupport from "./pages/dashboard/borrower/BorrowerSupport";
+
+// Support pages
+import AdminSupport from "./pages/dashboard/admin/AdminSupport";
+import TicketDetailPage from "./pages/dashboard/TicketDetailPage";
 
 // Public marketplace pages
 import Marketplace from "./pages/Marketplace";
@@ -100,6 +111,9 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/partenaires" element={<Partenaires />} />
               <Route path="/developer" element={<Developer />} />
+              <Route path="/developer/sandbox" element={<DeveloperSandbox />} />
+              <Route path="/developer/status" element={<DeveloperStatus />} />
+              <Route path="/developer/webhooks" element={<DeveloperWebhooks />} />
               <Route path="/api-reference" element={<ApiDocs />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/contact" element={<Contact />} />
@@ -107,6 +121,8 @@ const App = () => (
               <Route path="/legal" element={<Legal />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/compliance" element={<Compliance />} />
+              <Route path="/simulateur-roi" element={<ROISimulator />} />
               <Route path="/payment/confirmation" element={<PaymentConfirmation />} />
               
               {/* Public document submission */}
@@ -147,6 +163,9 @@ const App = () => (
               <Route path="/dashboard/admin/security" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SecurityWatch /></ProtectedRoute>} />
               <Route path="/dashboard/admin/emergency" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><EmergencyControl /></ProtectedRoute>} />
               <Route path="/dashboard/admin/lockdown-monitor" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><LockdownMonitor /></ProtectedRoute>} />
+              <Route path="/dashboard/admin/security-tests" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SecurityTests /></ProtectedRoute>} />
+              <Route path="/dashboard/admin/support" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><AdminSupport /></ProtectedRoute>} />
+              <Route path="/dashboard/admin/support/:ticketId" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><TicketDetailPage /></ProtectedRoute>} />
               
               {/* Partner Dashboard */}
               <Route path="/dashboard/partner" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'PARTENAIRE']}><PartnerDashboard /></ProtectedRoute>} />
@@ -174,6 +193,8 @@ const App = () => (
               <Route path="/dashboard/borrower/applications" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'EMPRUNTEUR']}><BorrowerApplications /></ProtectedRoute>} />
               <Route path="/dashboard/borrower/offers" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'EMPRUNTEUR']}><BorrowerOffers /></ProtectedRoute>} />
               <Route path="/dashboard/borrower/profile" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'EMPRUNTEUR']}><BorrowerProfile /></ProtectedRoute>} />
+              <Route path="/dashboard/borrower/support" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'EMPRUNTEUR']}><BorrowerSupport /></ProtectedRoute>} />
+              <Route path="/dashboard/borrower/support/:ticketId" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'EMPRUNTEUR']}><TicketDetailPage /></ProtectedRoute>} />
               
               {/* Legacy redirect: old credits page -> score page */}
               <Route path="/dashboard/borrower/credits" element={<Navigate to="/dashboard/borrower/score" replace />} />

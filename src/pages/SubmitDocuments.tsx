@@ -341,7 +341,7 @@ const SubmitDocuments = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="w-5 h-5 text-primary" />
-                  Processus de vérification W-KYC
+                  Processus de vérification WOUAKA
                 </CardTitle>
                 <CardDescription>
                   Vos documents seront analysés de manière sécurisée et confidentielle.
@@ -460,7 +460,7 @@ const SubmitDocuments = () => {
             </div>
             <h1 className="text-2xl font-bold mb-2">Analyse en cours...</h1>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Nos algorithmes W-KYC vérifient vos documents. Cette opération peut prendre quelques secondes.
+              Nos algorithmes WOUAKA vérifient vos documents. Cette opération peut prendre quelques secondes.
             </p>
             <div className="max-w-xs mx-auto space-y-3">
               <div className="flex items-center gap-3 text-left p-3 bg-muted/50 rounded-lg">

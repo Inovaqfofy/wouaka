@@ -5,6 +5,102 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 }
 
+// ============================================
+// SSRF PROTECTION - Complete validation
+// ============================================
+
+const BLOCKED_HOSTS = [
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  '::1',
+  // AWS metadata endpoints
+  '169.254.169.254',
+  '169.254.170.2',
+  // GCP metadata
+  'metadata.google.internal',
+  'metadata.goog',
+  // Azure metadata
+  '169.254.169.254',
+  // Kubernetes
+  'kubernetes.default',
+  'kubernetes.default.svc',
+  // Docker
+  'host.docker.internal',
+  'gateway.docker.internal',
+]
+
+const BLOCKED_IP_PATTERNS = [
+  /^127\./,                          // Loopback
+  /^10\./,                           // Private Class A
+  /^172\.(1[6-9]|2[0-9]|3[01])\./,   // Private Class B
+  /^192\.168\./,                     // Private Class C
+  /^169\.254\./,                     // Link-local
+  /^0\./,                            // Current network
+  /^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./, // Carrier-grade NAT
+  /^192\.0\.0\./,                    // IETF Protocol
+  /^192\.0\.2\./,                    // TEST-NET-1
+  /^198\.51\.100\./,                 // TEST-NET-2
+  /^203\.0\.113\./,                  // TEST-NET-3
+  /^224\./,                          // Multicast
+  /^240\./,                          // Reserved
+  /^255\./,                          // Broadcast
+  /^fc[0-9a-f]{2}:/i,                // IPv6 Unique Local
+  /^fd[0-9a-f]{2}:/i,                // IPv6 Unique Local
+  /^fe80:/i,                         // IPv6 Link-Local
+]
+
+function validateWebhookUrl(urlString: string): { valid: boolean; error?: string } {
+  try {
+    const url = new URL(urlString)
+    
+    // Only allow HTTPS
+    if (url.protocol !== 'https:') {
+      return { valid: false, error: 'Only HTTPS URLs are allowed' }
+    }
+    
+    // Block known dangerous hosts
+    const hostname = url.hostname.toLowerCase()
+    if (BLOCKED_HOSTS.includes(hostname)) {
+      return { valid: false, error: 'Blocked host: access to internal services is not allowed' }
+    }
+    
+    // Block metadata endpoints by path
+    if (url.pathname.includes('/latest/meta-data') || 
+        url.pathname.includes('/metadata/') ||
+        url.pathname.includes('/computeMetadata/')) {
+      return { valid: false, error: 'Access to cloud metadata endpoints is not allowed' }
+    }
+    
+    // Block private IP ranges
+    for (const pattern of BLOCKED_IP_PATTERNS) {
+      if (pattern.test(hostname)) {
+        return { valid: false, error: 'Private/internal IP addresses are not allowed' }
+      }
+    }
+    
+    // Block .local and .internal domains
+    if (hostname.endsWith('.local') || 
+        hostname.endsWith('.internal') || 
+        hostname.endsWith('.localhost')) {
+      return { valid: false, error: 'Local/internal domain names are not allowed' }
+    }
+    
+    // Block numeric localhost variations
+    if (/^(127|0|10|172\.(1[6-9]|2\d|3[01])|192\.168)\./.test(hostname)) {
+      return { valid: false, error: 'Private IP addresses are not allowed' }
+    }
+    
+    return { valid: true }
+  } catch {
+    return { valid: false, error: 'Invalid URL format' }
+  }
+}
+
+// ============================================
+// TYPES
+// ============================================
+
 interface WebhookCreateRequest {
   name: string
   url: string
@@ -18,7 +114,11 @@ interface WebhookUpdateRequest {
   is_active?: boolean
 }
 
-async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: boolean; userId?: string; keyId?: string }> {
+// ============================================
+// API KEY VALIDATION
+// ============================================
+
+async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: boolean; userId?: string; keyId?: string; rateLimit?: number }> {
   if (!apiKey || !apiKey.startsWith('wk_')) {
     return { valid: false }
   }
@@ -31,7 +131,7 @@ async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: b
 
   const { data: keyData, error } = await supabase
     .from('api_keys')
-    .select('id, user_id, is_active, expires_at')
+    .select('id, user_id, is_active, expires_at, rate_limit')
     .eq('key_hash', keyHash)
     .single()
 
@@ -48,8 +148,67 @@ async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: b
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', keyData.id)
 
-  return { valid: true, userId: keyData.user_id, keyId: keyData.id }
+  return { 
+    valid: true, 
+    userId: keyData.user_id, 
+    keyId: keyData.id,
+    rateLimit: keyData.rate_limit || 1000
+  }
 }
+
+// ============================================
+// RATE LIMITING
+// ============================================
+
+interface RateLimitResult {
+  allowed: boolean
+  remaining: number
+  resetAt: Date
+  limit: number
+}
+
+async function checkRateLimit(
+  supabase: any,
+  apiKeyId: string,
+  limit: number,
+  windowMinutes: number = 60
+): Promise<RateLimitResult> {
+  const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000)
+  
+  const { count, error } = await supabase
+    .from('api_calls')
+    .select('*', { count: 'exact', head: true })
+    .eq('api_key_id', apiKeyId)
+    .gte('created_at', windowStart.toISOString())
+  
+  if (error) {
+    console.error('[RATE LIMIT] Error:', error)
+    // Fail open - allow request but log the error
+    return { allowed: true, remaining: limit, resetAt: new Date(Date.now() + windowMinutes * 60 * 1000), limit }
+  }
+  
+  const currentCount = count || 0
+  const remaining = Math.max(0, limit - currentCount)
+  
+  return {
+    allowed: currentCount < limit,
+    remaining,
+    resetAt: new Date(Date.now() + windowMinutes * 60 * 1000),
+    limit
+  }
+}
+
+function rateLimitHeaders(result: RateLimitResult): Record<string, string> {
+  return {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.resetAt.toISOString(),
+  }
+}
+
+// ============================================
+// API LOGGING
+// ============================================
 
 async function logApiCall(supabase: any, params: {
   apiKeyId: string
@@ -99,6 +258,10 @@ const VALID_EVENTS = [
   'trial.expired'
 ]
 
+// ============================================
+// MAIN HANDLER
+// ============================================
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -125,6 +288,28 @@ Deno.serve(async (req) => {
 
   const userId = keyValidation.userId!
   const keyId = keyValidation.keyId!
+  const rateLimit = keyValidation.rateLimit || 1000
+
+  // Rate limiting using api_keys.rate_limit
+  const rateLimitResult = await checkRateLimit(supabase, keyId, rateLimit)
+  if (!rateLimitResult.allowed) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Rate limit exceeded', 
+        code: 'RATE_LIMIT_EXCEEDED',
+        reset_at: rateLimitResult.resetAt.toISOString()
+      }),
+      { 
+        status: 429, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          ...rateLimitHeaders(rateLimitResult),
+          'Retry-After': Math.ceil((rateLimitResult.resetAt.getTime() - Date.now()) / 1000).toString()
+        } 
+      }
+    )
+  }
 
   try {
     let response: any
@@ -174,49 +359,52 @@ Deno.serve(async (req) => {
         response = { error: 'name, url, and events are required' }
         statusCode = 400
       } else {
-        // Validate URL
-        try {
-          new URL(body.url)
-        } catch {
-          response = { error: 'Invalid URL format' }
-          statusCode = 400
-        }
-
-        // Validate events
-        const invalidEvents = body.events.filter(e => !VALID_EVENTS.includes(e))
-        if (invalidEvents.length > 0) {
+        // SSRF Protection - validate URL
+        const urlValidation = validateWebhookUrl(body.url)
+        if (!urlValidation.valid) {
           response = { 
-            error: `Invalid events: ${invalidEvents.join(', ')}`,
-            valid_events: VALID_EVENTS 
+            error: 'Invalid webhook URL', 
+            code: 'SSRF_BLOCKED',
+            details: urlValidation.error 
           }
           statusCode = 400
-        }
-
-        if (statusCode === 200) {
-          const secret = generateWebhookSecret()
-
-          const { data, error } = await supabase
-            .from('webhooks')
-            .insert({
-              user_id: userId,
-              name: body.name,
-              url: body.url,
-              events: body.events,
-              secret
-            })
-            .select('id, name, url, events, is_active, created_at')
-            .single()
-
-          if (error) {
-            response = { error: 'Failed to create webhook', details: error.message }
-            statusCode = 500
-          } else {
+        } else {
+          // Validate events
+          const invalidEvents = body.events.filter(e => !VALID_EVENTS.includes(e))
+          if (invalidEvents.length > 0) {
             response = { 
-              success: true, 
-              data: { ...data, secret },
-              message: 'Save the secret securely - it will not be shown again'
+              error: `Invalid events: ${invalidEvents.join(', ')}`,
+              valid_events: VALID_EVENTS 
             }
-            statusCode = 201
+            statusCode = 400
+          }
+
+          if (statusCode === 200) {
+            const secret = generateWebhookSecret()
+
+            const { data, error } = await supabase
+              .from('webhooks')
+              .insert({
+                user_id: userId,
+                name: body.name,
+                url: body.url,
+                events: body.events,
+                secret
+              })
+              .select('id, name, url, events, is_active, created_at')
+              .single()
+
+            if (error) {
+              response = { error: 'Failed to create webhook', details: error.message }
+              statusCode = 500
+            } else {
+              response = { 
+                success: true, 
+                data: { ...data, secret },
+                message: 'Save the secret securely - it will not be shown again'
+              }
+              statusCode = 201
+            }
           }
         }
       }
@@ -233,15 +421,20 @@ Deno.serve(async (req) => {
         const updates: any = {}
         if (body.name !== undefined) updates.name = body.name
         if (body.url !== undefined) {
-          try {
-            new URL(body.url)
-            updates.url = body.url
-          } catch {
-            response = { error: 'Invalid URL format' }
+          // SSRF Protection - validate URL on update
+          const urlValidation = validateWebhookUrl(body.url)
+          if (!urlValidation.valid) {
+            response = { 
+              error: 'Invalid webhook URL', 
+              code: 'SSRF_BLOCKED',
+              details: urlValidation.error 
+            }
             statusCode = 400
+          } else {
+            updates.url = body.url
           }
         }
-        if (body.events !== undefined) {
+        if (body.events !== undefined && statusCode === 200) {
           const invalidEvents = body.events.filter(e => !VALID_EVENTS.includes(e))
           if (invalidEvents.length > 0) {
             response = { error: `Invalid events: ${invalidEvents.join(', ')}` }
@@ -316,7 +509,8 @@ Deno.serve(async (req) => {
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json',
-          'X-Processing-Time': `${processingTime}ms`
+          'X-Processing-Time': `${processingTime}ms`,
+          ...rateLimitHeaders(rateLimitResult)
         } 
       }
     )

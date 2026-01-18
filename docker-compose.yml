@@ -1,0 +1,227 @@
+# ============================================
+# WOUAKA PRODUCTION DOCKER COMPOSE
+# ============================================
+# Deployment on VPS with Coolify
+# Domain: wouaka-creditscore.com
+# ============================================
+
+version: '3.9'
+
+services:
+  # ============================================
+  # FRONTEND (React + Vite)
+  # ============================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wouaka-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}
+    networks:
+      - wouaka-network
+    labels:
+      - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.wouaka.rule=Host(`wouaka-creditscore.com`) || Host(`www.wouaka-creditscore.com`)"
+      - "traefik.http.routers.wouaka.tls=true"
+      - "traefik.http.routers.wouaka.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wouaka.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - postgres
+      - ollama
+
+  # ============================================
+  # SUPABASE POSTGRES (Self-hosted)
+  # ============================================
+  postgres:
+    image: supabase/postgres:15.1.1.41
+    container_name: wouaka-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wouaka-secure-password}
+      POSTGRES_DB: wouaka
+      POSTGRES_USER: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/wouaka-install.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # SUPABASE STUDIO (Optional - Admin UI)
+  # ============================================
+  supabase-studio:
+    image: supabase/studio:20240422-5cf8f30
+    container_name: wouaka-studio
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      STUDIO_PG_META_URL: http://postgres-meta:8080
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_REST_URL: http://rest:3000
+    depends_on:
+      - postgres
+    networks:
+      - wouaka-network
+    profiles:
+      - admin
+
+  # ============================================
+  # OLLAMA (Local AI - DeepSeek)
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: wouaka-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    networks:
+      - wouaka-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+        limits:
+          memory: 16G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # REDIS (Caching & Rate Limiting)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: wouaka-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # SUPABASE EDGE RUNTIME (Edge Functions)
+  # ============================================
+  edge-runtime:
+    image: supabase/edge-runtime:v1.54.5
+    container_name: wouaka-edge
+    restart: unless-stopped
+    ports:
+      - "54321:9000"
+    environment:
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_ANON_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      # AI Configuration
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      LOVABLE_API_KEY: ${LOVABLE_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-deepseek-r1:8b}
+      # Payment providers
+      CINETPAY_API_KEY: ${CINETPAY_API_KEY}
+      CINETPAY_SITE_ID: ${CINETPAY_SITE_ID}
+      CINETPAY_SECRET_KEY: ${CINETPAY_SECRET_KEY}
+      # Identity verification
+      SMILE_ID_PARTNER_ID: ${SMILE_ID_PARTNER_ID}
+      SMILE_ID_API_KEY: ${SMILE_ID_API_KEY}
+      # Communications
+      RESEND_API_KEY: ${RESEND_API_KEY}
+    volumes:
+      - ./supabase/functions:/home/deno/functions:ro
+    depends_on:
+      - postgres
+      - ollama
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # NGINX REVERSE PROXY (Production)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: wouaka-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - frontend
+      - edge-runtime
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ============================================
+# VOLUMES
+# ============================================
+volumes:
+  postgres-data:
+    driver: local
+  ollama-data:
+    driver: local
+  redis-data:
+    driver: local
+  nginx-cache:
+    driver: local
+
+# ============================================
+# NETWORKS
+# ============================================
+networks:
+  wouaka-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

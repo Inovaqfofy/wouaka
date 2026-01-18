@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Lock, CheckCircle } from 'lucide-react';
+import { Loader2, Lock, CheckCircle, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logoWouaka from '@/assets/logo-wouaka.png';
 import { supabase } from '@/integrations/supabase/client';
+import { validatePasswordNotBreached } from '@/lib/password-breach-check';
 
 const passwordSchema = z
   .string()
@@ -24,6 +25,7 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingPassword, setCheckingPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
@@ -60,6 +62,16 @@ export default function ResetPassword() {
 
     if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    // Check for breached password before update
+    setCheckingPassword(true);
+    const breachError = await validatePasswordNotBreached(password);
+    setCheckingPassword(false);
+    
+    if (breachError) {
+      setError(breachError);
       return;
     }
 
@@ -182,8 +194,13 @@ export default function ResetPassword() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
+                <Button type="submit" className="w-full" disabled={loading || checkingPassword}>
+                  {checkingPassword ? (
+                    <>
+                      <ShieldAlert className="w-4 h-4 animate-pulse mr-2" />
+                      Vérification sécurité...
+                    </>
+                  ) : loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       Mise à jour...

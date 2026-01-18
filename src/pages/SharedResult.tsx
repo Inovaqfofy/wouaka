@@ -233,7 +233,7 @@ const SharedResult = () => {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="w-8 h-8 text-primary" />
               </div>
-              <CardTitle>W-Score</CardTitle>
+              <CardTitle>Score de Solvabilité WOUAKA</CardTitle>
               <CardDescription>Score de crédit indicatif</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -272,7 +272,7 @@ const SharedResult = () => {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
                 <Shield className="w-8 h-8 text-primary" />
               </div>
-              <CardTitle>Vérification W-KYC</CardTitle>
+              <CardTitle>Certificat d'Identité WOUAKA</CardTitle>
               <CardDescription>Vérification d'identité indicative</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

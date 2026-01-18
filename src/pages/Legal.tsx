@@ -78,14 +78,13 @@ export default function Legal() {
                 {/* Section 3: Hébergement */}
                 <section>
                   <h3 className="text-lg font-semibold text-foreground mb-3">3. Hébergement</h3>
-                  <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <p className="text-amber-800 dark:text-amber-200">
-                      <strong>À compléter par l'éditeur :</strong> Les informations relatives à l'hébergeur seront renseignées lors du déploiement sur l'infrastructure de production.
-                    </p>
-                    <div className="mt-3 text-sm space-y-1">
-                      <p>• Nom de l'hébergeur : [À compléter]</p>
-                      <p>• Adresse : [À compléter]</p>
-                      <p>• Téléphone : [À compléter]</p>
+                  <div className="p-4 bg-muted rounded-lg border">
+                    <p className="mb-3">Le site www.wouaka-creditscore.com est hébergé par :</p>
+                    <div className="text-sm space-y-1">
+                      <p><strong>IONOS SE</strong></p>
+                      <p>Elgendorfer Str. 57, 56410 Montabaur, Allemagne</p>
+                      <p>Téléphone : +49 2602 96 91</p>
+                      <p>Site web : <a href="https://www.ionos.fr" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">www.ionos.fr</a></p>
                     </div>
                   </div>
                 </section>

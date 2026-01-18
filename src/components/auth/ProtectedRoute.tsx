@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth, type AppRole } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
+import { DASHBOARD_ROUTES, type AppRole } from '@/lib/roles';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -27,18 +28,7 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    // Redirect to appropriate dashboard based on role
-    const roleRedirects: Record<AppRole, string> = {
-      SUPER_ADMIN: '/dashboard/admin',
-      PARTENAIRE: '/dashboard/partner',
-      EMPRUNTEUR: '/dashboard/borrower',
-      // Legacy redirects
-      ANALYSTE: '/dashboard/partner',
-      ENTREPRISE: '/dashboard/partner',
-      API_CLIENT: '/dashboard/partner',
-    };
-    
-    return <Navigate to={roleRedirects[role] || '/'} replace />;
+    return <Navigate to={DASHBOARD_ROUTES[role] || '/'} replace />;
   }
 
   return <>{children}</>;

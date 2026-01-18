@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        display: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -73,10 +74,16 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        danger: {
+          DEFAULT: "hsl(var(--danger, var(--destructive)))",
+          foreground: "hsl(var(--danger-foreground, var(--destructive-foreground)))",
+        },
+        // Enterprise Brand Colors
         wouaka: {
           deep: "hsl(var(--wouaka-deep))",
-          lime: "hsl(var(--wouaka-lime))",
-          gray: "hsl(var(--wouaka-gray))",
+          gold: "hsl(var(--wouaka-gold))",
+          navy: "hsl(var(--wouaka-navy))",
+          slate: "hsl(var(--wouaka-slate))",
           light: "hsl(var(--wouaka-light))",
         },
         chart: {
@@ -96,10 +103,13 @@ export default {
         "3xl": "calc(var(--radius) + 16px)",
       },
       boxShadow: {
-        'glow': '0 0 40px hsl(87 72% 52% / 0.3)',
-        'glow-lg': '0 0 60px hsl(87 72% 52% / 0.4)',
-        'card': '0 4px 24px hsl(0 0% 27% / 0.08)',
-        'card-hover': '0 8px 32px hsl(0 0% 27% / 0.12)',
+        'xs': 'var(--shadow-xs)',
+        'enterprise': 'var(--shadow-md)',
+        'enterprise-lg': 'var(--shadow-lg)',
+        'enterprise-xl': 'var(--shadow-xl)',
+        'gold': 'var(--shadow-gold)',
+        'card': 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
       },
       keyframes: {
         "accordion-down": {
@@ -112,42 +122,56 @@ export default {
         },
         "float": {
           "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-10px)" },
+          "50%": { transform: "translateY(-12px)" },
         },
-        "pulse-glow": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.5" },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.7", transform: "scale(0.98)" },
         },
         "slide-up": {
-          from: { opacity: "0", transform: "translateY(20px)" },
+          from: { opacity: "0", transform: "translateY(24px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "slide-down": {
-          from: { opacity: "0", transform: "translateY(-20px)" },
+          from: { opacity: "0", transform: "translateY(-24px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "scale-in": {
-          from: { opacity: "0", transform: "scale(0.95)" },
+          from: { opacity: "0", transform: "scale(0.92)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
         "shimmer": {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "glow": {
+          from: { boxShadow: "0 0 20px hsl(39 91% 55% / 0.3)" },
+          to: { boxShadow: "0 0 40px hsl(39 91% 55% / 0.5)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "float": "float 6s ease-in-out infinite",
-        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
-        "slide-up": "slide-up 0.5s ease-out forwards",
-        "slide-down": "slide-down 0.5s ease-out forwards",
-        "scale-in": "scale-in 0.3s ease-out forwards",
-        "shimmer": "shimmer 2s linear infinite",
+        "pulse-soft": "pulse-soft 3s ease-in-out infinite",
+        "slide-up": "slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "slide-down": "slide-down 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "scale-in": "scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "shimmer": "shimmer 2.5s linear infinite",
+        "glow": "glow 2s ease-in-out infinite alternate",
+        "fade-in": "fade-in 0.5s ease-out forwards",
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'hero-pattern': 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%238adb2f" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+        'hero-pattern': 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
       },
     },
   },

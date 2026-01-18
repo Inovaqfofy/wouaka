@@ -1,5 +1,11 @@
 project_id = "xfpjpzxnekmxynbzbtwx"
 
+[functions.check-password-breach]
+verify_jwt = false
+
+[functions.support-ai]
+verify_jwt = false
+
 [functions.calculate-score]
 verify_jwt = false
 
@@ -142,4 +148,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.kill-switch]
+verify_jwt = false
+
+[functions.admin-invite-user]
+verify_jwt = false
+
+[functions.security-tests]
+verify_jwt = false
+
+[functions.support-tickets]
 verify_jwt = false

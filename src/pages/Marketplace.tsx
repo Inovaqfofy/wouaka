@@ -399,7 +399,7 @@ const Marketplace = () => {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="border-primary-foreground/30 hover:bg-primary-foreground/10" asChild>
+              <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10" asChild>
                 <Link to="/contact">
                   Nous contacter
                 </Link>

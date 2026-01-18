@@ -246,22 +246,22 @@ const PartnerDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link to="/dashboard/partner/kyc" className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
-                <FileCheck className="w-8 h-8 text-orange-600" />
+              <Link to="/dashboard/partner/kyc" className="flex items-center gap-3 p-4 bg-[#D4A017]/10 rounded-lg hover:bg-[#D4A017]/20 transition-colors">
+                <FileCheck className="w-8 h-8 text-[#D4A017]" />
                 <div>
                   <p className="text-2xl font-bold">{stats.pendingKyc}</p>
                   <p className="text-sm text-muted-foreground">KYC à valider</p>
                 </div>
               </Link>
-              <Link to="/dashboard/partner/applications" className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                <Users className="w-8 h-8 text-blue-600" />
+              <Link to="/dashboard/partner/applications" className="flex items-center gap-3 p-4 bg-[#0A3D2C]/5 rounded-lg hover:bg-[#0A3D2C]/10 transition-colors">
+                <Users className="w-8 h-8 text-[#0A3D2C]" />
                 <div>
                   <p className="text-2xl font-bold">{appsLoading ? '--' : appStats.pending}</p>
                   <p className="text-sm text-muted-foreground">Candidatures à traiter</p>
                 </div>
               </Link>
-              <Link to="/dashboard/partner/evaluations" className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
+              <Link to="/dashboard/partner/evaluations" className="flex items-center gap-3 p-4 bg-[#D4A017]/10 rounded-lg hover:bg-[#D4A017]/20 transition-colors">
+                <TrendingUp className="w-8 h-8 text-[#D4A017]" />
                 <div>
                   <p className="text-2xl font-bold">{clientsData?.filter(c => !c.compositeScore).length || 0}</p>
                   <p className="text-sm text-muted-foreground">Clients sans score</p>

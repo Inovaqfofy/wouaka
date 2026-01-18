@@ -2,11 +2,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import type { AppRole } from '@/lib/roles';
 
-// New simplified roles
-export type AppRole = 'SUPER_ADMIN' | 'PARTENAIRE' | 'EMPRUNTEUR' | 
-  // Legacy roles for backward compatibility
-  'ANALYSTE' | 'ENTREPRISE' | 'API_CLIENT';
+// Re-export AppRole for backward compatibility
+export type { AppRole } from '@/lib/roles';
 
 interface Profile {
   id: string;

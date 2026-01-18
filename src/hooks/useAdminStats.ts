@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import type { AppRole } from "@/lib/roles";
 
 export interface AdminStats {
   activeUsers: number;
@@ -263,7 +264,7 @@ export const useAllUsers = () => {
         email: p.email,
         fullName: p.full_name,
         company: p.company,
-        role: rolesMap.get(p.id) || "ENTREPRISE",
+        role: rolesMap.get(p.id) || "PARTENAIRE",
         isActive: p.is_active ?? true,
         createdAt: new Date(p.created_at).toLocaleDateString("fr-FR"),
       }));
@@ -340,7 +341,7 @@ export const useAuditLogs = (limit = 50) => {
   });
 };
 
-export type AppRole = 'SUPER_ADMIN' | 'ANALYSTE' | 'ENTREPRISE' | 'API_CLIENT';
+// AppRole is now imported from @/lib/roles
 
 export const useUpdateUserRole = () => {
   const queryClient = useQueryClient();

@@ -511,8 +511,8 @@ const AdminBilling = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les produits</SelectItem>
-                    <SelectItem value="score">W-Score</SelectItem>
-                    <SelectItem value="kyc">W-KYC</SelectItem>
+                    <SelectItem value="score">Scoring WOUAKA</SelectItem>
+                    <SelectItem value="kyc">Vérification WOUAKA</SelectItem>
                     <SelectItem value="bundle">Pack / Bundle</SelectItem>
                   </SelectContent>
                 </Select>

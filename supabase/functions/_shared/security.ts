@@ -32,8 +32,13 @@ export async function checkRateLimit(
   
   if (error) {
     console.error('[RATE LIMIT] Error checking:', error)
-    // Fail open to avoid blocking legitimate requests
-    return { allowed: true, remaining: limit, resetAt: new Date(Date.now() + windowMinutes * 60 * 1000), limit }
+    // SECURITY: Fail closed - deny requests when rate limit check fails to prevent abuse
+    return { 
+      allowed: false, 
+      remaining: 0, 
+      resetAt: new Date(Date.now() + windowMinutes * 60 * 1000), 
+      limit 
+    }
   }
   
   const currentCount = count || 0

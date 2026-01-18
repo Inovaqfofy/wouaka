@@ -45,7 +45,11 @@ export interface PartnerPlan {
   trialDays?: number; // Nouveau: durée de l'essai en jours
 }
 
-// Legacy interface for backward compatibility
+/**
+ * @deprecated - Utilisez PartnerPlan directement
+ * Cette interface est maintenue pour rétrocompatibilité uniquement
+ * Les références à wscore/wkyc sont remplacées par "dossiers" dans la nouvelle architecture
+ */
 export interface PricingPlan {
   id: string;
   name: string;
@@ -55,7 +59,9 @@ export interface PricingPlan {
   currency: string;
   period: string;
   quotas: {
+    /** @deprecated - Utilisez dossiers de PartnerPlan */
     wscore: number | null;
+    /** @deprecated - Utilisez dossiers de PartnerPlan */
     wkyc: number | null;
   };
   features: string[];
@@ -255,9 +261,14 @@ export const PARTNER_PLANS: PartnerPlan[] = [
 
 // ============================================
 // LEGACY: PRICING_PLANS pour rétrocompatibilité
-// Mapped depuis PARTNER_PLANS
+// @deprecated - Utilisez PARTNER_PLANS directement
+// Sera supprimé dans une prochaine version
 // ============================================
 
+/**
+ * @deprecated - Utilisez PARTNER_PLANS directement
+ * Les quotas wscore/wkyc sont remplacés par "dossiers" dans PartnerPlan
+ */
 export const PRICING_PLANS: PricingPlan[] = PARTNER_PLANS.map((plan) => ({
   id: plan.id,
   name: plan.name,
@@ -267,8 +278,9 @@ export const PRICING_PLANS: PricingPlan[] = PARTNER_PLANS.map((plan) => ({
   currency: plan.currency,
   period: plan.period,
   quotas: {
+    // Les quotas séparés sont obsolètes - un dossier = scoring + kyc + aml
     wscore: plan.quotas.dossiers,
-    wkyc: plan.quotas.dossiers ? Math.floor(plan.quotas.dossiers / 2) : null,
+    wkyc: plan.quotas.dossiers,
   },
   features: plan.features,
   notIncluded: plan.notIncluded,

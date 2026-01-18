@@ -47,7 +47,7 @@ const TEMPLATE_CONFIGS: TemplatePreviewProps[] = [
   {
     template: 'score_ready',
     title: 'Score Disponible',
-    description: 'Notification quand un nouveau score W-SCORE est calculé',
+    description: 'Notification quand un nouveau score WOUAKA est calculé',
     sampleData: {
       fullName: 'Kouamé Yao',
       scoreValue: 725,

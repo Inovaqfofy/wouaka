@@ -234,7 +234,7 @@ export const EvaluationDocumentUpload = ({
         <CardContent className="p-6 text-center">
           <FileCheck className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">
-            Les documents ne sont pas requis pour W-SCORE.
+            Les documents ne sont pas requis pour l'évaluation WOUAKA.
             <br />
             Le score sera calculé à partir des données financières.
           </p>

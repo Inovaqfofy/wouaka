@@ -1,4 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { 
+  callAI, 
+  getAIProvider, 
+  getAIProviderStatus,
+  type AICompletionResponse 
+} from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -61,6 +67,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     const { profileData, requestId }: { profileData: ProfileData; requestId?: string } = await req.json();
     
@@ -68,11 +76,8 @@ serve(async (req) => {
       throw new Error('Profile data is required');
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
-    }
-
+    const providerStatus = getAIProviderStatus();
+    console.log(`[AI Fraud Detector] Using provider: ${providerStatus.current}`);
     console.log(`[AI Fraud Detector] Analyzing profile${requestId ? ` for request ${requestId}` : ''}`);
 
     // Build the analysis prompt
@@ -111,102 +116,75 @@ RÈGLES D'ANALYSE:
 
 Retourne l'analyse au format JSON structuré.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'detect_anomalies',
-              description: 'Détecte les anomalies dans un profil utilisateur',
-              parameters: {
-                type: 'object',
-                properties: {
-                  anomalies: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        type: { 
-                          type: 'string',
-                          enum: ['identity_mismatch', 'income_inflation', 'document_tampering', 'behavioral_anomaly', 'geographic_inconsistency', 'transaction_pattern', 'device_anomaly']
-                        },
-                        field: { type: 'string' },
-                        severity: { type: 'string', enum: ['low', 'medium', 'high'] },
-                        description: { type: 'string' },
-                        confidence: { type: 'number' }
+    // Use the hybrid AI provider
+    const aiResponse: AICompletionResponse = await callAI({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'detect_anomalies',
+            description: 'Détecte les anomalies dans un profil utilisateur',
+            parameters: {
+              type: 'object',
+              properties: {
+                anomalies: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: { 
+                        type: 'string',
+                        enum: ['identity_mismatch', 'income_inflation', 'document_tampering', 'behavioral_anomaly', 'geographic_inconsistency', 'transaction_pattern', 'device_anomaly']
                       },
-                      required: ['type', 'field', 'severity', 'description', 'confidence']
-                    }
-                  },
-                  fraudProbability: { type: 'number', minimum: 0, maximum: 100 },
-                  riskLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
-                  explanation: { type: 'string' },
-                  recommendations: {
-                    type: 'array',
-                    items: { type: 'string' }
+                      field: { type: 'string' },
+                      severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+                      description: { type: 'string' },
+                      confidence: { type: 'number' }
+                    },
+                    required: ['type', 'field', 'severity', 'description', 'confidence']
                   }
                 },
-                required: ['anomalies', 'fraudProbability', 'riskLevel', 'explanation', 'recommendations']
-              }
+                fraudProbability: { type: 'number', minimum: 0, maximum: 100 },
+                riskLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                explanation: { type: 'string' },
+                recommendations: {
+                  type: 'array',
+                  items: { type: 'string' }
+                }
+              },
+              required: ['anomalies', 'fraudProbability', 'riskLevel', 'explanation', 'recommendations']
             }
           }
-        ],
-        tool_choice: { type: 'function', function: { name: 'detect_anomalies' } }
-      }),
+        }
+      ],
+      tool_choice: { type: 'function', function: { name: 'detect_anomalies' } }
+    }, {
+      task: 'fraud-detection',
+      fallback: true // Try other providers on failure
     });
 
-    if (!response.ok) {
-      const status = response.status;
-      
-      if (status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const errorText = await response.text();
-      console.error('[AI Fraud Detector] AI gateway error:', status, errorText);
-      throw new Error(`AI gateway error: ${status}`);
-    }
-
-    const aiResponse = await response.json();
-    
-    // Extract the tool call result
     let result: AnomalyDetectionResult;
-    
-    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall && toolCall.function?.arguments) {
-      try {
-        result = JSON.parse(toolCall.function.arguments);
-      } catch {
-        console.error('[AI Fraud Detector] Failed to parse tool call arguments');
-        result = getDefaultResult(profileData);
-      }
+
+    if (!aiResponse.success) {
+      console.warn(`[AI Fraud Detector] AI call failed: ${aiResponse.error}, using rule-based fallback`);
+      result = getDefaultResult(profileData);
     } else {
-      // Fallback: try to extract from content
-      const content = aiResponse.choices?.[0]?.message?.content;
-      if (content) {
+      // Extract result from tool call or content
+      const toolCall = aiResponse.tool_calls?.[0];
+      if (toolCall && toolCall.function?.arguments) {
         try {
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          result = JSON.parse(toolCall.function.arguments);
+        } catch {
+          console.error('[AI Fraud Detector] Failed to parse tool call arguments');
+          result = getDefaultResult(profileData);
+        }
+      } else if (aiResponse.content) {
+        try {
+          const jsonMatch = aiResponse.content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             result = JSON.parse(jsonMatch[0]);
           } else {
@@ -223,13 +201,20 @@ Retourne l'analyse au format JSON structuré.`;
     // Validate and normalize result
     result = normalizeResult(result);
 
+    const processingTime = Date.now() - startTime;
     console.log(`[AI Fraud Detector] Analysis complete: ${result.riskLevel} risk, ${result.fraudProbability}% probability, ${result.anomalies.length} anomalies`);
+    console.log(`[AI Fraud Detector] Provider: ${aiResponse.provider}, AI latency: ${aiResponse.latency_ms}ms, Total: ${processingTime}ms`);
 
     return new Response(
       JSON.stringify({
         success: true,
         requestId,
         result,
+        metadata: {
+          provider: aiResponse.provider,
+          ai_latency_ms: aiResponse.latency_ms,
+          total_processing_ms: processingTime,
+        },
         analyzedAt: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -240,7 +225,8 @@ Retourne l'analyse au format JSON structuré.`;
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        processing_ms: Date.now() - startTime
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

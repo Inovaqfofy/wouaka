@@ -78,7 +78,7 @@ const DEFAULT_ZONE = { factor: 0.55, tier: 'rural', infrastructure: 0.40 }
 // ============================================
 // API KEY VALIDATION
 // ============================================
-async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: boolean; userId?: string; keyId?: string; permissions?: string[] }> {
+async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: boolean; userId?: string; keyId?: string; permissions?: string[]; rateLimit?: number }> {
   if (!apiKey || !apiKey.startsWith('wk_')) {
     return { valid: false }
   }
@@ -101,7 +101,13 @@ async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: b
 
   await supabase.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', keyData.id)
 
-  return { valid: true, userId: keyData.user_id, keyId: keyData.id, permissions: keyData.permissions || ['score'] }
+  return { 
+    valid: true, 
+    userId: keyData.user_id, 
+    keyId: keyData.id, 
+    permissions: keyData.permissions || ['score'],
+    rateLimit: keyData.rate_limit || 1000
+  }
 }
 
 // ============================================
@@ -511,6 +517,27 @@ Deno.serve(async (req) => {
     )
   }
 
+  // Rate limiting using api_keys.rate_limit
+  const rateLimit = await checkRateLimit(supabase, keyValidation.keyId!, keyValidation.rateLimit || 1000, 60)
+  if (!rateLimit.allowed) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Rate limit exceeded', 
+        code: 'RATE_LIMIT_EXCEEDED',
+        reset_at: rateLimit.resetAt.toISOString()
+      }),
+      { 
+        status: 429, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          ...rateLimitHeaders(rateLimit),
+          'Retry-After': Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000).toString()
+        } 
+      }
+    )
+  }
+
   try {
     const body: ScoreRequest = await req.json()
     
@@ -562,7 +589,7 @@ Deno.serve(async (req) => {
       endpoint: '/partners/score',
       method: 'POST',
       statusCode: 200,
-      requestBody: body,
+      requestBody: redactPII(body),
       responseBody: response,
       processingTimeMs: processingTime,
       ipAddress: ipAddress || undefined,

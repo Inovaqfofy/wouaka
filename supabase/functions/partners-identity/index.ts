@@ -173,7 +173,7 @@ interface IdentityRequest {
 // API KEY VALIDATION
 // ============================================
 
-async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: boolean; userId?: string; keyId?: string; permissions?: string[] }> {
+async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: boolean; userId?: string; keyId?: string; permissions?: string[]; rateLimit?: number }> {
   if (!apiKey || !apiKey.startsWith('wk_')) {
     return { valid: false }
   }
@@ -186,7 +186,7 @@ async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: b
 
   const { data: keyData, error } = await supabase
     .from('api_keys')
-    .select('id, user_id, permissions, is_active, expires_at')
+    .select('id, user_id, permissions, is_active, expires_at, rate_limit')
     .eq('key_hash', keyHash)
     .single()
 
@@ -207,7 +207,8 @@ async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: b
     valid: true,
     userId: keyData.user_id,
     keyId: keyData.id,
-    permissions: keyData.permissions || []
+    permissions: keyData.permissions || [],
+    rateLimit: keyData.rate_limit || 1000
   }
 }
 
@@ -326,8 +327,8 @@ Deno.serve(async (req) => {
     )
   }
 
-  // Rate limiting
-  const rateLimit = await checkRateLimit(supabase, keyValidation.keyId!, 1000, 60)
+  // Rate limiting using api_keys.rate_limit
+  const rateLimit = await checkRateLimit(supabase, keyValidation.keyId!, keyValidation.rateLimit || 1000, 60)
   if (!rateLimit.allowed) {
     return new Response(
       JSON.stringify({ 

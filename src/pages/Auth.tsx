@@ -1,33 +1,24 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
-import { useAuth, type AppRole } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-import { Loader2, Mail, Lock, User, ArrowLeft, CheckCircle, Building2 } from 'lucide-react';
+import { Loader2, Mail, Lock, User, ArrowLeft, CheckCircle, Building2, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logoWouaka from '@/assets/logo-wouaka.png';
-
-// Available roles for signup (excluding SUPER_ADMIN)
-type SignupRole = 'PARTENAIRE' | 'EMPRUNTEUR';
-
-const roleLabels: Record<SignupRole, { label: string; description: string; icon: string }> = {
-  EMPRUNTEUR: { 
-    label: 'Particulier (Emprunteur)', 
-    description: 'Je veux certifier ma solvabilité et partager mon dossier',
-    icon: 'user'
-  },
-  PARTENAIRE: { 
-    label: 'Institution Financière', 
-    description: 'Banque, IMF, fintech – je veux recevoir des dossiers de preuves',
-    icon: 'building'
-  },
-};
+import { validatePasswordNotBreached } from '@/lib/password-breach-check';
+import { 
+  SIGNUP_ROLES, 
+  SIGNUP_ROLE_LABELS,
+  DASHBOARD_ROUTES,
+  type SignupRole,
+  type AppRole 
+} from '@/lib/roles';
 
 // Validation schemas
 const emailSchema = z.string().email('Email invalide').max(255, 'Email trop long');
@@ -59,6 +50,7 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [selectedRole, setSelectedRole] = useState<SignupRole>('EMPRUNTEUR');
   const [loading, setLoading] = useState(false);
+  const [checkingPassword, setCheckingPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -73,18 +65,8 @@ export default function Auth() {
   // Redirect authenticated users
   useEffect(() => {
     if (user && role && !authLoading) {
-      const roleRedirects: Record<AppRole, string> = {
-        SUPER_ADMIN: '/dashboard/admin',
-        PARTENAIRE: '/dashboard/partner',
-        EMPRUNTEUR: '/dashboard/borrower',
-        // Legacy
-        ANALYSTE: '/dashboard/partner',
-        ENTREPRISE: '/dashboard/partner',
-        API_CLIENT: '/dashboard/partner',
-      };
-
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
-      navigate(from || roleRedirects[role] || '/', { replace: true });
+      navigate(from || DASHBOARD_ROUTES[role] || '/', { replace: true });
     }
   }, [user, role, authLoading, navigate, location]);
 
@@ -129,6 +111,16 @@ export default function Auth() {
         setError(err.errors[0].message);
         return;
       }
+    }
+
+    // Check for breached password before signup
+    setCheckingPassword(true);
+    const breachError = await validatePasswordNotBreached(password);
+    setCheckingPassword(false);
+    
+    if (breachError) {
+      setError(breachError);
+      return;
     }
 
     setLoading(true);
@@ -182,6 +174,17 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Back to home link */}
+        <div className="mb-6">
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Retour à l'accueil
+          </Link>
+        </div>
+
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-3 mb-4">
@@ -411,7 +414,7 @@ export default function Auth() {
                     <div className="space-y-3">
                       <Label>Je suis un(e)</Label>
                       <div className="grid gap-3">
-                        {(Object.keys(roleLabels) as SignupRole[]).map((role) => (
+                        {SIGNUP_ROLES.map((role) => (
                           <div
                             key={role}
                             onClick={() => setSelectedRole(role)}
@@ -431,9 +434,9 @@ export default function Auth() {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium">{roleLabels[role].label}</p>
+                              <p className="font-medium">{SIGNUP_ROLE_LABELS[role].label}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                {roleLabels[role].description}
+                                {SIGNUP_ROLE_LABELS[role].description}
                               </p>
                             </div>
                             {selectedRole === role && (
@@ -444,27 +447,31 @@ export default function Auth() {
                       </div>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? (
+                    <Button type="submit" className="w-full" disabled={loading || checkingPassword}>
+                      {checkingPassword ? (
+                        <>
+                          <ShieldAlert className="w-4 h-4 animate-pulse mr-2" />
+                          Vérification sécurité...
+                        </>
+                      ) : loading ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Inscription...
+                          Création du compte...
                         </>
                       ) : (
-                        "S'inscrire"
+                        "Créer mon compte"
                       )}
                     </Button>
 
                     <p className="text-xs text-center text-muted-foreground">
-                      En vous inscrivant, vous acceptez nos{' '}
+                      En créant un compte, vous acceptez nos{' '}
                       <Link to="/terms" className="text-primary hover:underline">
-                        conditions d'utilisation
+                        Conditions d'utilisation
                       </Link>{' '}
                       et notre{' '}
                       <Link to="/privacy" className="text-primary hover:underline">
-                        politique de confidentialité
+                        Politique de confidentialité
                       </Link>
-                      .
                     </p>
                   </form>
                 </CardContent>
@@ -472,12 +479,6 @@ export default function Auth() {
             </Tabs>
           </Card>
         )}
-
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          <Link to="/" className="text-primary hover:underline">
-            ← Retour à l'accueil
-          </Link>
-        </p>
       </div>
     </div>
   );

@@ -473,7 +473,7 @@ const PartnerProofDossier = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-primary" />
-                      Résultat W-SCORE
+                      Score de Solvabilité
                     </CardTitle>
                     <CardDescription>
                       Score de crédit calculé et détails

@@ -1,43 +1,43 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Wallet, Building2, DollarSign, MessageSquare, Code2 } from "lucide-react";
+import { Menu, X, Wallet, Building2, DollarSign, MessageSquare, Code2, ChevronDown, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import logoWouaka from "@/assets/logo-wouaka.png";
 
-const navLinks = [
-  {
-    label: "Offres de financement",
-    href: "/marketplace",
-    icon: Wallet,
-    description: "Trouvez le prêt adapté à votre profil",
-  },
-  {
-    label: "Pour les partenaires",
-    href: "/partenaires",
-    icon: Building2,
-    description: "API de scoring et KYC pour institutions",
-  },
-  {
-    label: "Développeurs",
-    href: "/developer",
-    icon: Code2,
-    description: "Documentation API et SDK",
-  },
-  {
-    label: "Tarifs",
-    href: "/pricing",
-    icon: DollarSign,
-    description: "Nos plans et tarification",
-  },
-  {
-    label: "Contact",
-    href: "/contact",
-    icon: MessageSquare,
-    description: "Parlez à notre équipe",
-  },
+// Dropdown menus structure
+const solutionsMenu = [
+  { label: "API Scoring & KYC", href: "/partenaires", icon: Building2, description: "Pour institutions financières" },
+  { label: "Conformité", href: "/compliance", icon: Shield, description: "Sécurité et réglementations" },
+];
+
+const developerMenu = [
+  { label: "Documentation API", href: "https://sandbox.wouaka-creditscore.com/", icon: Code2, description: "Guides et références", external: true },
+  { label: "Tarifs API", href: "/pricing", icon: DollarSign, description: "Plans et tarification" },
+];
+
+// Simple links (no dropdown)
+const simpleLinks = [
+  { label: "Marketplace", href: "/marketplace", icon: Wallet },
+  { label: "Contact", href: "/contact", icon: MessageSquare },
+];
+
+// All links for mobile
+const allMobileLinks = [
+  { label: "Solutions", href: "/partenaires", icon: Building2, description: "API de scoring et KYC" },
+  { label: "Conformité", href: "/compliance", icon: Shield, description: "Sécurité et réglementations" },
+  { label: "Marketplace", href: "/marketplace", icon: Wallet, description: "Offres de financement" },
+  { label: "Développeurs", href: "https://sandbox.wouaka-creditscore.com/", icon: Code2, description: "Documentation API", external: true },
+  { label: "Tarifs", href: "/pricing", icon: DollarSign, description: "Plans et tarification" },
+  { label: "Contact", href: "/contact", icon: MessageSquare, description: "Parlez à notre équipe" },
 ];
 
 export const Navbar = () => {
@@ -61,7 +61,30 @@ export const Navbar = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-1">
-          {navLinks.map((link) => (
+          {/* Solutions Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
+              <Building2 className="w-4 h-4" />
+              Solutions
+              <ChevronDown className="w-3 h-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 bg-card border border-border z-50">
+              {solutionsMenu.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link to={item.href} className="flex items-start gap-3 p-3 cursor-pointer">
+                    <item.icon className="w-4 h-4 mt-0.5 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.description}</p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Simple Links */}
+          {simpleLinks.map((link) => (
             <Link
               key={link.href}
               to={link.href}
@@ -75,6 +98,28 @@ export const Navbar = () => {
               {link.label}
             </Link>
           ))}
+
+          {/* Developers Dropdown - At the end before auth */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
+              <Code2 className="w-4 h-4" />
+              Développeurs
+              <ChevronDown className="w-3 h-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 bg-card border border-border z-50">
+              {developerMenu.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link to={item.href} className="flex items-start gap-3 p-3 cursor-pointer">
+                    <item.icon className="w-4 h-4 mt-0.5 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.description}</p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
         {/* Actions */}
@@ -114,7 +159,7 @@ export const Navbar = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-border bg-card animate-slide-down max-h-[80vh] overflow-y-auto">
           <nav className="container mx-auto px-4 py-4 space-y-1">
-            {navLinks.map((link) => (
+            {allMobileLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}

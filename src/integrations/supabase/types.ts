@@ -2106,6 +2106,45 @@ export type Database = {
           },
         ]
       }
+      knowledge_base: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          keywords: string[] | null
+          title: string
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          title: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          title?: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       known_fraudulent_images: {
         Row: {
           detection_count: number | null
@@ -4127,6 +4166,48 @@ export type Database = {
         }
         Relationships: []
       }
+      sla_configs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          escalation_minutes: number
+          first_response_minutes: number
+          id: string
+          is_active: boolean | null
+          name: string
+          priority: string
+          resolution_minutes: number
+          updated_at: string | null
+          user_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          escalation_minutes?: number
+          first_response_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+          priority: string
+          resolution_minutes?: number
+          updated_at?: string | null
+          user_type: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          escalation_minutes?: number
+          first_response_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          priority?: string
+          resolution_minutes?: number
+          updated_at?: string | null
+          user_type?: string
+        }
+        Relationships: []
+      }
       sms_analyses: {
         Row: {
           amount: number | null
@@ -4344,6 +4425,202 @@ export type Database = {
           },
         ]
       }
+      suggested_response_usage: {
+        Row: {
+          agent_id: string | null
+          created_at: string | null
+          id: string
+          knowledge_base_id: string | null
+          ticket_id: string
+          was_helpful: boolean | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string | null
+          id?: string
+          knowledge_base_id?: string | null
+          ticket_id: string
+          was_helpful?: boolean | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string | null
+          id?: string
+          knowledge_base_id?: string | null
+          ticket_id?: string
+          was_helpful?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggested_response_usage_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggested_response_usage_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          ai_priority_reason: string | null
+          ai_sentiment_score: number | null
+          ai_suggested_category: string | null
+          ai_summary: string | null
+          assigned_to: string | null
+          attachments: Json | null
+          category: Database["public"]["Enums"]["ticket_category"]
+          closed_at: string | null
+          created_at: string
+          csat_sent_at: string | null
+          description: string
+          escalated_at: string | null
+          escalated_to: string | null
+          escalation_reason: string | null
+          first_response_at: string | null
+          frustration_score: number | null
+          id: string
+          internal_notes: string | null
+          last_viewed_at: string | null
+          partner_id: string | null
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          related_certificate_id: string | null
+          related_kyc_id: string | null
+          resolved_at: string | null
+          sla_breached: boolean | null
+          sla_first_response_at: string | null
+          sla_resolution_at: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          tags: string[] | null
+          ticket_number: string
+          updated_at: string
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          ai_priority_reason?: string | null
+          ai_sentiment_score?: number | null
+          ai_suggested_category?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          attachments?: Json | null
+          category?: Database["public"]["Enums"]["ticket_category"]
+          closed_at?: string | null
+          created_at?: string
+          csat_sent_at?: string | null
+          description: string
+          escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          first_response_at?: string | null
+          frustration_score?: number | null
+          id?: string
+          internal_notes?: string | null
+          last_viewed_at?: string | null
+          partner_id?: string | null
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          related_certificate_id?: string | null
+          related_kyc_id?: string | null
+          resolved_at?: string | null
+          sla_breached?: boolean | null
+          sla_first_response_at?: string | null
+          sla_resolution_at?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          tags?: string[] | null
+          ticket_number: string
+          updated_at?: string
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          ai_priority_reason?: string | null
+          ai_sentiment_score?: number | null
+          ai_suggested_category?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          attachments?: Json | null
+          category?: Database["public"]["Enums"]["ticket_category"]
+          closed_at?: string | null
+          created_at?: string
+          csat_sent_at?: string | null
+          description?: string
+          escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          first_response_at?: string | null
+          frustration_score?: number | null
+          id?: string
+          internal_notes?: string | null
+          last_viewed_at?: string | null
+          partner_id?: string | null
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          related_certificate_id?: string | null
+          related_kyc_id?: string | null
+          resolved_at?: string | null
+          sla_breached?: boolean | null
+          sla_first_response_at?: string | null
+          sla_resolution_at?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject?: string
+          tags?: string[] | null
+          ticket_number?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_escalated_to_fkey"
+            columns: ["escalated_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_related_certificate_id_fkey"
+            columns: ["related_certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_related_kyc_id_fkey"
+            columns: ["related_kyc_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_lockdown_state: {
         Row: {
           auto_triggered: boolean | null
@@ -4430,6 +4707,189 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      ticket_csat: {
+        Row: {
+          agent_id: string | null
+          created_at: string | null
+          feedback: string | null
+          id: string
+          rating: number
+          resolution_quality: number | null
+          response_speed: number | null
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          rating: number
+          resolution_quality?: number | null
+          response_speed?: number | null
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          rating?: number
+          resolution_quality?: number | null
+          response_speed?: number | null
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_csat_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: true
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          ticket_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          ticket_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          ticket_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_logs_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_messages: {
+        Row: {
+          attachments: Json | null
+          author_id: string
+          author_role: string
+          content: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          is_automated: boolean | null
+          is_internal: boolean | null
+          read_at: string | null
+          ticket_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          author_id: string
+          author_role: string
+          content: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_automated?: boolean | null
+          is_internal?: boolean | null
+          read_at?: string | null
+          ticket_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          author_id?: string
+          author_role?: string
+          content?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_automated?: boolean | null
+          is_internal?: boolean | null
+          read_at?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_tags: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          id: string
+          source: string | null
+          tag: string
+          ticket_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          source?: string | null
+          tag: string
+          ticket_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          source?: string | null
+          tag?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_tags_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_addresses: {
         Row: {
@@ -5653,10 +6113,13 @@ export type Database = {
         Args: { p_phone_number: string }
         Returns: number
       }
-      check_borrower_credits: {
-        Args: { p_credit_type: string; p_user_id: string }
-        Returns: number
-      }
+      calculate_sla_deadline: { Args: { p_ticket_id: string }; Returns: Json }
+      check_borrower_credits:
+        | { Args: { p_user_id: string }; Returns: number }
+        | {
+            Args: { p_credit_type: string; p_user_id: string }
+            Returns: number
+          }
       check_recertifications_available: {
         Args: { p_user_id: string }
         Returns: {
@@ -5667,7 +6130,7 @@ export type Database = {
       }
       cleanup_expired_otps: { Args: never; Returns: undefined }
       consume_borrower_credit: {
-        Args: { p_credit_type: string; p_user_id: string }
+        Args: { p_credit_type?: string; p_user_id: string }
         Returns: boolean
       }
       consume_recertification: {
@@ -5706,6 +6169,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_ticket_role: { Args: { user_uuid: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5733,6 +6197,19 @@ export type Database = {
         | "API_CLIENT"
         | "PARTENAIRE"
         | "EMPRUNTEUR"
+      ticket_category:
+        | "technical"
+        | "billing"
+        | "score_dispute"
+        | "identity"
+        | "general"
+      ticket_priority: "low" | "medium" | "high" | "urgent"
+      ticket_status:
+        | "new"
+        | "in_progress"
+        | "waiting_user"
+        | "resolved"
+        | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5867,6 +6344,21 @@ export const Constants = {
         "API_CLIENT",
         "PARTENAIRE",
         "EMPRUNTEUR",
+      ],
+      ticket_category: [
+        "technical",
+        "billing",
+        "score_dispute",
+        "identity",
+        "general",
+      ],
+      ticket_priority: ["low", "medium", "high", "urgent"],
+      ticket_status: [
+        "new",
+        "in_progress",
+        "waiting_user",
+        "resolved",
+        "closed",
       ],
     },
   },

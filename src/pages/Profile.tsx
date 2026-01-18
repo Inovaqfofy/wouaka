@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { AppRole } from '@/hooks/useAuth';
+import { ROLE_LABELS, type AppRole } from '@/lib/roles';
 
 // Validation schema
 const profileSchema = z.object({
@@ -33,15 +33,6 @@ const profileSchema = z.object({
   phone: z.string().max(20, 'Numéro trop long').optional().or(z.literal('')),
   company: z.string().max(100, 'Nom d\'entreprise trop long').optional().or(z.literal('')),
 });
-
-const roleLabels: Record<AppRole, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  PARTENAIRE: 'Partenaire',
-  EMPRUNTEUR: 'Emprunteur',
-  ANALYSTE: 'Analyste',
-  ENTREPRISE: 'Entreprise',
-  API_CLIENT: 'API Client',
-};
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -258,7 +249,7 @@ export default function Profile() {
                 </div>
               </div>
               <Badge variant="premium">
-                {role ? roleLabels[role] : 'Utilisateur'}
+                {role ? ROLE_LABELS[role] : 'Utilisateur'}
               </Badge>
             </div>
 

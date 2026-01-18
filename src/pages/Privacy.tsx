@@ -594,11 +594,11 @@ export default function Privacy() {
 
                 <Card className="border-2 border-primary/20">
                   <CardContent className="p-6">
-                    <h3 className="font-semibold text-foreground mb-3">6.1. Infrastructure Souveraine</h3>
+                    <h3 className="font-semibold text-foreground mb-3">6.1. Infrastructure d'Hébergement</h3>
                     <p className="mb-4">
                       Les données personnelles collectées par Wouaka sont stockées sur des 
-                      <strong className="text-foreground"> serveurs privés sécurisés appartenant à Inopay Group SARL</strong>, 
-                      situés dans la zone UEMOA, conformément aux exigences de localisation des données.
+                      <strong className="text-foreground"> serveurs sécurisés hébergés par IONOS SE</strong> (Allemagne), 
+                      un hébergeur européen certifié conforme au RGPD et aux normes ISO 27001.
                     </p>
                     
                     <h3 className="font-semibold text-foreground mb-3">6.2. Garanties de Sécurité</h3>

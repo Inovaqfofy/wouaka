@@ -62,7 +62,7 @@ const wouaka = new WouakaClient({
 });
 ```
 
-## 📊 W-SCORE (Credit Scoring)
+## 📊 Scoring (WOUAKA EMPRUNTEUR)
 
 ```typescript
 // Calculer un score
@@ -94,7 +94,7 @@ const existing = await wouaka.scores.get('score_xxx');
 const history = await wouaka.scores.list({ page: 1, per_page: 20 });
 ```
 
-## 🔍 W-KYC (Vérification d'Identité)
+## 🔍 Vérification (WOUAKA PARTENAIRE)
 
 ```typescript
 // Vérifier un client

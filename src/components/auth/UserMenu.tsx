@@ -1,4 +1,4 @@
-import { useAuth, type AppRole } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -16,32 +16,9 @@ import {
   Settings,
   LogOut,
   LayoutDashboard,
-  Shield,
-  Building,
-  Code,
-  ChartBar,
   ChevronDown,
 } from 'lucide-react';
-
-const roleConfig: Record<AppRole, { label: string; icon: typeof Shield; color: string }> = {
-  SUPER_ADMIN: { label: 'Super Admin', icon: Shield, color: 'bg-red-500' },
-  PARTENAIRE: { label: 'Partenaire', icon: Building, color: 'bg-green-500' },
-  EMPRUNTEUR: { label: 'Emprunteur', icon: User, color: 'bg-blue-500' },
-  // Legacy
-  ANALYSTE: { label: 'Analyste', icon: ChartBar, color: 'bg-blue-500' },
-  ENTREPRISE: { label: 'Entreprise', icon: Building, color: 'bg-green-500' },
-  API_CLIENT: { label: 'API Client', icon: Code, color: 'bg-purple-500' },
-};
-
-const dashboardRoutes: Record<AppRole, string> = {
-  SUPER_ADMIN: '/dashboard/admin',
-  PARTENAIRE: '/dashboard/partner',
-  EMPRUNTEUR: '/dashboard/borrower',
-  // Legacy
-  ANALYSTE: '/dashboard/partner',
-  ENTREPRISE: '/dashboard/partner',
-  API_CLIENT: '/dashboard/partner',
-};
+import { ROLE_CONFIG, ROLE_LABELS, DASHBOARD_ROUTES } from '@/lib/roles';
 
 type UserMenuVariant = 'icon' | 'full';
 
@@ -55,8 +32,9 @@ export const UserMenu = ({ variant = 'icon' }: UserMenuProps) => {
 
   if (!user) return null;
 
-  const config = role ? roleConfig[role] : null;
+  const config = role ? ROLE_CONFIG[role] : null;
   const RoleIcon = config?.icon || User;
+  const roleLabel = role ? ROLE_LABELS[role] : '';
   const initials = profile?.full_name
     ?.split(' ')
     .map((n) => n[0])
@@ -71,7 +49,7 @@ export const UserMenu = ({ variant = 'icon' }: UserMenuProps) => {
 
   const handleDashboard = () => {
     if (role) {
-      navigate(dashboardRoutes[role]);
+      navigate(DASHBOARD_ROUTES[role]);
     }
   };
 
@@ -97,7 +75,7 @@ export const UserMenu = ({ variant = 'icon' }: UserMenuProps) => {
             <>
               <div className="hidden sm:flex flex-col items-start leading-none">
                 <span className="text-sm font-medium">{profile?.full_name || 'Utilisateur'}</span>
-                <span className="text-xs text-muted-foreground">{config?.label || ''}</span>
+                <span className="text-xs text-muted-foreground">{roleLabel}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
             </>
@@ -116,7 +94,7 @@ export const UserMenu = ({ variant = 'icon' }: UserMenuProps) => {
             {role && config && (
               <Badge variant="outline" className="w-fit mt-1">
                 <RoleIcon className="w-3 h-3 mr-1" />
-                {config.label}
+                {roleLabel}
               </Badge>
             )}
           </div>

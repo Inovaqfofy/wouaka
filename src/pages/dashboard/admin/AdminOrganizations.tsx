@@ -231,7 +231,7 @@ const AdminOrganizations = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredOrgs.map((org) => {
-                    const role = userRoles?.find(r => r.user_id === org.id)?.role || "ENTREPRISE";
+                    const role = userRoles?.find(r => r.user_id === org.id)?.role || "PARTENAIRE";
                     const subscription = userSubscriptions?.find(s => s.user_id === org.id);
                     const planName = subscription?.subscription_plans?.name || "—";
                     const scoreCount = scoreCounts?.[org.id] || 0;

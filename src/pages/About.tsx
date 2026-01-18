@@ -331,10 +331,10 @@ export default function About() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-foreground mb-1">Hébergement souverain</h4>
+                      <h4 className="font-semibold text-foreground mb-1">Hébergement sécurisé</h4>
                       <p className="text-muted-foreground">
-                        Infrastructure et données hébergées conformément aux exigences de localisation 
-                        des données de la zone UEMOA.
+                        Infrastructure hébergée chez IONOS, certifiée ISO 27001 et conforme au RGPD, 
+                        avec chiffrement des données en transit et au repos.
                       </p>
                     </div>
                   </div>
