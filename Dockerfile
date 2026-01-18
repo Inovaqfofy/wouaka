@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ============================================
 # WOUAKA PRODUCTION DOCKERFILE
 # Multi-stage build for optimized production image
@@ -62,4 +63,27 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
 # Start nginx
+=======
+# Étape 1 : Build
+FROM node:22-slim AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Étape 2 : Serveur de production (Nginx)
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+# Copie d'une config Nginx pour gérer le routage React (SPA)
+RUN echo 'server { \
+    listen 80; \
+    location / { \
+        root /usr/share/nginx/html; \
+        index index.html; \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
+EXPOSE 80
+>>>>>>> 7b7fe70ebbd570e71746bedf73ca37c40a0b6a41
 CMD ["nginx", "-g", "daemon off;"]
