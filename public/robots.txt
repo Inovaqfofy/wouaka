@@ -1,0 +1,102 @@
+# ============================================
+# WOUAKA - Robots.txt
+# https://www.wouaka-creditscore.com
+# ============================================
+
+# Allow all search engines to index public pages
+User-agent: Googlebot
+Allow: /
+Allow: /about
+Allow: /partenaires
+Allow: /pricing
+Allow: /developer
+Allow: /marketplace
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+Allow: /legal
+Allow: /auth
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /kyc-process/
+Disallow: /api/
+Disallow: /submit-documents/
+Disallow: /shared/
+
+User-agent: Bingbot
+Allow: /
+Allow: /about
+Allow: /partenaires
+Allow: /pricing
+Allow: /developer
+Allow: /marketplace
+Allow: /contact
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /kyc-process/
+Disallow: /api/
+Disallow: /submit-documents/
+Disallow: /shared/
+
+# Social media crawlers - allow all for rich previews
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+# Default - allow public, block sensitive
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /partenaires
+Allow: /pricing
+Allow: /developer
+Allow: /marketplace
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+Allow: /legal
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /kyc-process/
+Disallow: /api/
+Disallow: /submit-documents/
+Disallow: /shared/
+Disallow: /payment/
+Disallow: /profile
+Disallow: /reset-password
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Crawl delay for respectful crawling
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://www.wouaka-creditscore.com/sitemap.xml
+
+# Host directive (helps with canonical domain)
+Host: https://www.wouaka-creditscore.com
