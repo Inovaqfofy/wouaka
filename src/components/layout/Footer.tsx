@@ -12,6 +12,9 @@ const footerLegal = [
 
 const footerSociete = [
   { label: "À propos", href: "/about" },
+  { label: "Nos partenaires", href: "/partenaires" },
+  { label: "Tarifs", href: "/pricing" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const socialLinks = [
@@ -27,10 +30,10 @@ export const Footer = () => {
   return (
     <footer className="bg-[#0A3D2C] text-white" role="contentinfo" aria-label="Pied de page Wouaka">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 lg:gap-12">
           
           {/* Brand */}
-          <div className="lg:col-span-1">
+          <div className="md:col-span-2 lg:col-span-2">
             <Link to="/" className="inline-flex items-center gap-3 mb-6 group" aria-label="Wouaka - Retour à l'accueil">
               <img src={logoWouaka} alt="Logo Wouaka" className="w-12 h-12 rounded-xl transition-transform group-hover:scale-105" />
               <span className="text-2xl font-bold tracking-tight">Wouaka</span>
