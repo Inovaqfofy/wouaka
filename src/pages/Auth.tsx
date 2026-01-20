@@ -134,7 +134,7 @@ export default function Auth() {
         setError('Erreur lors de l\'inscription. Veuillez réessayer.');
       }
     } else {
-      setSuccess('Compte créé avec succès ! Connexion en cours...');
+      setSuccess('Compte créé avec succès ! Veuillez vérifier votre email pour confirmer votre inscription.');
     }
   };
 
