@@ -1,6 +1,6 @@
 /**
  * UserScoreDashboard - Dashboard utilisateur WOUAKA
- * Affiche le score de crédit avec jauge radiale, statut KYC et demande de prêt
+ * Version Finale Optimisée avec Historique des Prêts
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -8,7 +8,6 @@ import {
   RefreshCw, 
   AlertCircle, 
   CheckCircle2, 
-  XCircle, 
   Shield, 
   TrendingUp,
   User,
@@ -18,11 +17,14 @@ import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from '
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScoreSkeletonCard, StatsSkeletonCard } from '@/components/ui/skeleton-card';
 import { useWouakaScore } from '@/hooks/useWouakaScore';
 import { parseWouakaSdkError, type WouakaSdkError } from '@/lib/wouaka-sdk-client';
+
+// Import de tes nouveaux composants
 import { LoanApplicationModal } from '@/components/loan/LoanApplicationModal';
+import { LoanHistoryTable, type LoanApplication } from '@/components/loan/LoanHistoryTable';
 
 // ============================================
 // Types
@@ -33,7 +35,6 @@ interface UserInfo {
   name: string;
   email?: string;
   kycStatus: 'pending' | 'verified' | 'rejected' | 'expired';
-  kycLevel?: string;
 }
 
 interface ScoreData {
@@ -45,13 +46,13 @@ interface ScoreData {
 }
 
 // ============================================
-// Helpers
+// Helpers Visuels
 // ============================================
 
 function getScoreColor(score: number): string {
-  if (score < 30) return '#ef4444'; // Rouge
-  if (score < 60) return '#f97316'; // Orange
-  return '#22c55e'; // Vert
+  if (score < 30) return '#ef4444';
+  if (score < 60) return '#f97316';
+  return '#22c55e';
 }
 
 function getRiskLabel(score: number): string {
@@ -60,120 +61,12 @@ function getRiskLabel(score: number): string {
   return 'Risque faible';
 }
 
-function KycStatusBadge({ status }: { status: UserInfo['kycStatus'] }) {
-  const config = {
-    pending: { label: 'En attente', variant: 'secondary' as const, icon: Clock },
-    verified: { label: 'Vérifié', variant: 'default' as const, icon: CheckCircle2 },
-    rejected: { label: 'Rejeté', variant: 'destructive' as const, icon: XCircle },
-    expired: { label: 'Expiré', variant: 'outline' as const, icon: AlertCircle },
-  };
-  
-  const { label, variant, icon: Icon } = config[status];
-  
-  return (
-    <Badge variant={variant} className="flex items-center gap-1">
-      <Icon className="h-3 w-3" />
-      {label}
-    </Badge>
-  );
-}
-
 // ============================================
-// Sub-Components
-// ============================================
-
-function ScoreGauge({ score, maxScore = 100 }: { score: number; maxScore?: number }) {
-  const percentage = (score / maxScore) * 100;
-  const color = getScoreColor(score);
-  const data = [{ name: 'Score', value: percentage, fill: color }];
-
-  return (
-    <div className="relative w-64 h-64 mx-auto">
-      <ResponsiveContainer width="100%" height="100%">
-        <RadialBarChart 
-          cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" 
-          barSize={20} data={data} startAngle={180} endAngle={0}
-        >
-          <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-          <RadialBar background={{ fill: 'hsl(var(--muted))' }} dataKey="value" cornerRadius={10} angleAxisId={0} />
-        </RadialBarChart>
-      </ResponsiveContainer>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-5xl font-bold" style={{ color }}>{score}</span>
-        <span className="text-sm text-muted-foreground">sur {maxScore}</span>
-      </div>
-    </div>
-  );
-}
-
-function LoanEligibilityCard({ score, userId }: { score: number; userId?: string }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const color = getScoreColor(score);
-  const isEligible = score > 50;
-  const needsImprovement = score < 30;
-  
-  return (
-    <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" style={{ color }} />
-            Éligibilité au Prêt
-          </CardTitle>
-          <CardDescription>
-            {isEligible 
-              ? 'Votre profil financier vous permet de demander un prêt'
-              : needsImprovement
-                ? 'Améliorez votre score pour accéder aux offres de prêt'
-                : 'Continuez à améliorer votre score pour plus d\'options'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: `${color}15`, borderLeft: `4px solid ${color}` }}>
-            <div className="flex items-center gap-2 mb-2">
-              {isEligible ? <CheckCircle2 className="h-5 w-5" style={{ color }} /> : <AlertCircle className="h-5 w-5" style={{ color }} />}
-              <span className="font-medium" style={{ color }}>
-                {isEligible ? 'Éligible aux offres de crédit' : needsImprovement ? 'Score insuffisant' : 'Presque éligible'}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {isEligible
-                ? `Avec ${score}/100, vous avez accès à nos meilleures offres.`
-                : needsImprovement
-                  ? `Votre score nécessite des améliorations avant de pouvoir emprunter.`
-                  : `Encore ${50 - score} points pour débloquer les offres de prêt.`
-              }
-            </p>
-          </div>
-
-          {isEligible ? (
-            <Button className="w-full gap-2" style={{ backgroundColor: color, color: 'white' }} onClick={() => setIsModalOpen(true)}>
-              <TrendingUp className="h-4 w-4" /> Demander un prêt
-            </Button>
-          ) : (
-            <Button variant="outline" className="w-full gap-2" style={{ borderColor: color, color: color }} asChild>
-              <a href="/conseils-score"><AlertCircle className="h-4 w-4" /> Conseils d'amélioration</a>
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      <LoanApplicationModal 
-        open={isModalOpen} 
-        onOpenChange={setIsModalOpen} 
-        score={score} 
-        userId={userId} 
-      />
-    </>
-  );
-}
-
-// ============================================
-// Main Dashboard
+// Main Component
 // ============================================
 
 export default function UserScoreDashboard() {
+  // 1. États
   const [userInfo] = useState<UserInfo>({
     id: 'user_123',
     name: 'Kouassi Jean-Baptiste',
@@ -183,13 +76,30 @@ export default function UserScoreDashboard() {
   
   const [scoreData, setScoreData] = useState<ScoreData | null>(null);
   const [error, setError] = useState<WouakaSdkError | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
+  // Simulation d'un historique initial
+  const [loanApplications, setLoanApplications] = useState<LoanApplication[]>([
+    { 
+      id: 'loan_001', 
+      amount: 150000, 
+      date: new Date(Date.now() - 86400000 * 5).toISOString(), 
+      status: 'approved', 
+      duration: 6 
+    }
+  ]);
+
+  // 2. Hook SDK
   const { calculateScore, isLoading, error: sdkError, reset } = useWouakaScore({ showToasts: false });
 
+  // 3. Chargement des données
   const loadScore = useCallback(async () => {
     setError(null);
     try {
-      const result = await calculateScore({ phone_number: '+22507XXXXXXXX', full_name: userInfo.name });
+      const result = await calculateScore({ 
+        phone_number: '+22507XXXXXXXX', 
+        full_name: userInfo.name 
+      });
       if (result) {
         setScoreData({
           score: Math.round(result.score),
@@ -211,9 +121,9 @@ export default function UserScoreDashboard() {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         
-        {/* Header */}
+        {/* Header Utilisateur */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b">
           <div className="flex items-center gap-4">
             <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
@@ -225,86 +135,149 @@ export default function UserScoreDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Statut KYC:</span>
-            <KycStatusBadge status={userInfo.kycStatus} />
+             <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+               <CheckCircle2 className="h-3 w-3 mr-1" /> KYC Vérifié
+             </Badge>
           </div>
         </header>
 
+        {/* Gestion des Erreurs */}
         {error && !isLoading && (
-          <Alert variant="destructive" className="max-w-md mx-auto">
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription className="mt-2">
+            <AlertTitle>Erreur de synchronisation</AlertTitle>
+            <AlertDescription className="flex items-center justify-between w-full">
               {error.message}
-              <Button variant="outline" size="sm" onClick={handleRetry} className="mt-3 w-full">
-                <RefreshCw className="h-4 w-4 mr-2" /> Réessayer
+              <Button size="sm" variant="outline" onClick={handleRetry} className="ml-4">
+                <RefreshCw className="h-3 w-3 mr-2" /> Réessayer
               </Button>
             </AlertDescription>
           </Alert>
         )}
 
+        {/* Skeleton pendant le chargement */}
         {isLoading && (
           <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-2 space-y-6"><ScoreSkeletonCard /></div>
+            <div className="md:col-span-2"><ScoreSkeletonCard /></div>
             <div className="space-y-4"><StatsSkeletonCard /><StatsSkeletonCard /></div>
           </div>
         )}
 
+        {/* Dashboard Principal */}
         {!isLoading && !error && scoreData && (
-          <div className="grid gap-6 md:grid-cols-3">
-            
-            {/* Colonne Gauche: Score + Éligibilité */}
-            <div className="md:col-span-2 space-y-6">
-              <Card className="relative overflow-hidden">
-                <div 
-                  className="absolute inset-0 opacity-5"
-                  style={{ background: `radial-gradient(circle at 50% 0%, ${getScoreColor(scoreData.score)}, transparent 70%)` }}
-                />
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="flex items-center justify-center gap-2 text-xl">
-                    <Shield className="h-5 w-5 text-primary" /> Score de Crédit WOUAKA
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <ScoreGauge score={scoreData.score} />
-                  <div className="text-center mt-4">
-                    <Badge variant="outline" className="text-lg px-4 py-1" style={{ borderColor: getScoreColor(scoreData.score), color: getScoreColor(scoreData.score) }}>
-                      {getRiskLabel(scoreData.score)}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-center gap-8 mt-6 text-center">
-                    <div><p className="text-sm text-muted-foreground">Grade</p><p className="text-2xl font-bold">{scoreData.grade}</p></div>
-                    <div><p className="text-sm text-muted-foreground">Fiabilité</p><p className="text-2xl font-bold">{scoreData.confidence}%</p></div>
-                  </div>
-                </CardContent>
-              </Card>
+          <>
+            <div className="grid gap-6 md:grid-cols-3">
+              
+              {/* Colonne Gauche : Score et Éligibilité */}
+              <div className="md:col-span-2 space-y-6">
+                
+                {/* Jauge de Score */}
+                <Card className="relative overflow-hidden">
+                  <div 
+                    className="absolute inset-0 opacity-5"
+                    style={{ background: `radial-gradient(circle at 50% 0%, ${getScoreColor(scoreData.score)}, transparent 70%)` }}
+                  />
+                  <CardHeader className="text-center">
+                    <CardTitle className="flex items-center justify-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" /> Score de Crédit WOUAKA
+                    </CardTitle>
+                    <CardDescription>Analyse en temps réel de votre fiabilité</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative w-64 h-64 mx-auto">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadialBarChart 
+                          cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" 
+                          barSize={20} data={[{ value: scoreData.score, fill: getScoreColor(scoreData.score) }]} 
+                          startAngle={180} endAngle={0}
+                        >
+                          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                          <RadialBar background={{ fill: 'hsl(var(--muted))' }} dataKey="value" cornerRadius={10} />
+                        </RadialBarChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pt-8">
+                        <span className="text-5xl font-bold" style={{ color: getScoreColor(scoreData.score) }}>{scoreData.score}</span>
+                        <Badge variant="outline" className="mt-2" style={{ borderColor: getScoreColor(scoreData.score), color: getScoreColor(scoreData.score) }}>
+                          {getRiskLabel(scoreData.score)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* L'éligibilité se place ici pour un layout harmonieux */}
-              <LoanEligibilityCard score={scoreData.score} userId={userInfo.id} />
+                {/* Carte d'Éligibilité Prêt */}
+                <Card className="border-l-4" style={{ borderLeftColor: getScoreColor(scoreData.score) }}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" style={{ color: getScoreColor(scoreData.score) }} />
+                      Offre de Financement
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {scoreData.score >= 50 
+                        ? "Félicitations ! Votre profil vous permet de simuler un prêt dès maintenant." 
+                        : "Votre score est un peu bas. Continuez vos transactions pour débloquer les prêts."}
+                    </p>
+                    <Button 
+                      className="w-full" 
+                      style={{ backgroundColor: scoreData.score >= 30 ? getScoreColor(scoreData.score) : '#ccc', color: 'white' }}
+                      disabled={scoreData.score < 30}
+                      onClick={() => setIsModalOpen(true)}
+                    >
+                      Demander un prêt
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Colonne Droite : Widgets Infos */}
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Analyse</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase">Grade Actuel</p>
+                        <p className="text-2xl font-bold">{scoreData.grade}</p>
+                      </div>
+                      <div className="pt-4 border-t">
+                        <p className="text-xs text-muted-foreground uppercase">Fiabilité</p>
+                        <p className="text-2xl font-bold">{scoreData.confidence}%</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Mise à jour</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      {new Date(scoreData.calculated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <Button variant="ghost" size="sm" className="w-full mt-4 text-xs h-8" onClick={handleRetry}>
+                      <RefreshCw className="h-3 w-3 mr-2" /> Actualiser
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
-            {/* Colonne Droite: Infos Secondaires */}
-            <div className="space-y-4">
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Catégorie</CardTitle></CardHeader>
-                <CardContent><p className="text-xl font-semibold capitalize">{scoreData.risk_category.replace('_', ' ')}</p></CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Mise à jour</CardTitle></CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(scoreData.calculated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Button variant="outline" className="w-full gap-2" onClick={handleRetry} disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Actualiser
-              </Button>
+            {/* Historique des Demandes (Sous le dashboard) */}
+            <div className="pt-6">
+              <LoanHistoryTable applications={loanApplications} />
             </div>
-          </div>
+          </>
         )}
+
+        {/* Modale de Prêt */}
+        <LoanApplicationModal 
+          open={isModalOpen} 
+          onOpenChange={setIsModalOpen} 
+          score={scoreData?.score || 0} 
+          userId={userInfo.id}
+        />
       </div>
     </div>
   );
