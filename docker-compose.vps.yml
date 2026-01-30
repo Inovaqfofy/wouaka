@@ -1,0 +1,265 @@
+# ============================================
+# WOUAKA PRODUCTION - SELF-HOSTED VPS
+# ============================================
+# Docker Compose for complete self-hosted deployment
+# No Supabase dependency - uses PostgreSQL + MinIO + Express
+# Domain: wouaka-creditscore.com
+# ============================================
+
+version: '3.9'
+
+services:
+  # ============================================
+  # FRONTEND (React + Vite + Nginx)
+  # ============================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wouaka-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=https://api.wouaka-creditscore.com/api
+      - VITE_MINIO_PUBLIC_URL=https://storage.wouaka-creditscore.com
+    networks:
+      - wouaka-network
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # BACKEND API (Node.js + Express)
+  # ============================================
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wouaka-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: wouaka
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wouaka-secure-password-2026}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-wouaka-jwt-secret-min-32-chars-change-in-production}
+      # MinIO
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-wouaka-access-key}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-wouaka-secret-key-min-8}
+      MINIO_USE_SSL: "false"
+      MINIO_PUBLIC_URL: https://storage.wouaka-creditscore.com
+      # Frontend URL
+      FRONTEND_URL: https://www.wouaka-creditscore.com
+      API_URL: https://api.wouaka-creditscore.com
+      # Payments
+      CINETPAY_API_KEY: ${CINETPAY_API_KEY}
+      CINETPAY_SITE_ID: ${CINETPAY_SITE_ID}
+      CINETPAY_SECRET_KEY: ${CINETPAY_SECRET_KEY}
+      # Identity Verification
+      SMILE_ID_PARTNER_ID: ${SMILE_ID_PARTNER_ID}
+      SMILE_ID_API_KEY: ${SMILE_ID_API_KEY}
+      # Email
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      # SMS
+      AFRICASTALKING_API_KEY: ${AFRICASTALKING_API_KEY}
+      AFRICASTALKING_USERNAME: ${AFRICASTALKING_USERNAME}
+      # AI
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: http://ollama:11434
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+    networks:
+      - wouaka-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # POSTGRESQL DATABASE
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: wouaka-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wouaka-secure-password-2026}
+      POSTGRES_DB: wouaka
+      POSTGRES_USER: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/wouaka-install.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./scripts/import-users.sql:/docker-entrypoint-initdb.d/02-import-users.sql:ro
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # MINIO (S3-Compatible Storage)
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: wouaka-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-wouaka-access-key}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-wouaka-secret-key-min-8}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # OLLAMA (Local AI - Optional)
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: wouaka-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    networks:
+      - wouaka-network
+    profiles:
+      - ai
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+        limits:
+          memory: 16G
+
+  # ============================================
+  # REDIS (Caching & Rate Limiting)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: wouaka-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # NGINX REVERSE PROXY
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: wouaka-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-vps.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - frontend
+      - api
+      - minio
+    networks:
+      - wouaka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # PGADMIN (Optional - Database Admin)
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: wouaka-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@wouaka.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-wouaka-admin}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - wouaka-network
+    profiles:
+      - admin
+
+# ============================================
+# VOLUMES
+# ============================================
+volumes:
+  postgres-data:
+    driver: local
+  minio-data:
+    driver: local
+  ollama-data:
+    driver: local
+  redis-data:
+    driver: local
+  nginx-cache:
+    driver: local
+  pgadmin-data:
+    driver: local
+
+# ============================================
+# NETWORKS
+# ============================================
+networks:
+  wouaka-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

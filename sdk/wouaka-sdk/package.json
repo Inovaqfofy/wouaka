@@ -1,0 +1,58 @@
+{
+  "name": "@wouaka/sdk",
+  "version": "1.0.0",
+  "description": "SDK officiel Wouaka pour l'intégration des APIs de credit scoring, KYC et vérification d'identité en Afrique de l'Ouest (UEMOA)",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "wouaka",
+    "credit-scoring",
+    "kyc",
+    "identity-verification",
+    "uemoa",
+    "africa",
+    "fintech",
+    "mobile-money",
+    "api",
+    "sdk"
+  ],
+  "author": "Wouaka <dev@wouaka-creditscore.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wouaka/sdk-js"
+  },
+  "homepage": "https://wouaka-creditscore.com/developer",
+  "bugs": {
+    "url": "https://github.com/wouaka/sdk-js/issues"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

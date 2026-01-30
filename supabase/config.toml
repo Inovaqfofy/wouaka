@@ -1,0 +1,160 @@
+project_id = "xfpjpzxnekmxynbzbtwx"
+
+[functions.check-password-breach]
+verify_jwt = false
+
+[functions.support-ai]
+verify_jwt = false
+
+[functions.calculate-score]
+verify_jwt = false
+
+[functions.partners-score]
+verify_jwt = false
+
+[functions.partners-kyc]
+verify_jwt = false
+
+[functions.partners-identity]
+verify_jwt = false
+
+[functions.partners-webhooks]
+verify_jwt = false
+
+[functions.partners-api-keys]
+verify_jwt = false
+
+[functions.process-dataset]
+verify_jwt = false
+
+[functions.audit-logs]
+verify_jwt = false
+
+[functions.notifications]
+verify_jwt = false
+
+[functions.subscriptions]
+verify_jwt = false
+
+[functions.settings]
+verify_jwt = false
+
+[functions.permissions]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
+
+[functions.precheck]
+verify_jwt = false
+
+[functions.fraud-shield]
+verify_jwt = false
+
+[functions.business-insights]
+verify_jwt = false
+
+[functions.rbi-calculate]
+verify_jwt = false
+
+[functions.cinetpay-init]
+verify_jwt = false
+
+[functions.cinetpay-webhook]
+verify_jwt = false
+
+[functions.data-enrich]
+verify_jwt = false
+
+[functions.generate-invoice]
+verify_jwt = false
+
+[functions.subscription-reminders]
+verify_jwt = false
+
+[functions.rccm-verify]
+verify_jwt = false
+
+[functions.document-analyze]
+verify_jwt = false
+
+[functions.mtn-momo-verify]
+verify_jwt = false
+
+[functions.orange-money-verify]
+verify_jwt = false
+
+[functions.wave-verify]
+verify_jwt = false
+
+[functions.wouaka-core]
+verify_jwt = false
+
+[functions.wouaka-kyc]
+verify_jwt = false
+
+[functions.wouaka-score]
+verify_jwt = false
+
+[functions.sms-otp-send]
+verify_jwt = false
+
+[functions.sms-otp-verify]
+verify_jwt = false
+
+[functions.smile-id-init]
+verify_jwt = false
+
+[functions.smile-id-verify]
+verify_jwt = false
+
+[functions.aml-screening]
+verify_jwt = false
+
+[functions.sync-compliance-data]
+verify_jwt = false
+
+[functions.ai-fraud-detector]
+verify_jwt = false
+
+[functions.partner-outcome]
+verify_jwt = false
+
+[functions.borrower-credits-init]
+verify_jwt = false
+
+[functions.wouaka-dossier]
+verify_jwt = false
+
+[functions.certificate-subscribe]
+verify_jwt = false
+
+[functions.recertify-certificate]
+verify_jwt = false
+
+[functions.validate-certificate]
+verify_jwt = false
+
+[functions.sync-plans]
+verify_jwt = false
+
+[functions.trial-expire]
+verify_jwt = false
+
+[functions.send-automated-email]
+verify_jwt = false
+
+[functions.admin-internal-stats]
+verify_jwt = false
+
+[functions.kill-switch]
+verify_jwt = false
+
+[functions.admin-invite-user]
+verify_jwt = false
+
+[functions.security-tests]
+verify_jwt = false
+
+[functions.support-tickets]
+verify_jwt = false
